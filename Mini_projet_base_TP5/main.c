@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+//test1_2
 #include "ch.h"
 #include "hal.h"
 #include "memory_protection.h"
@@ -15,8 +15,6 @@
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
-
-//ligne inutile
 
 //uncomment to send the FFTs results from the real microphones
 #define SEND_FROM_MIC
