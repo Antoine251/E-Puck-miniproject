@@ -25,6 +25,15 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
+void process_audio_start(void){
+	chThdCreateStatic(waProcessAudio, sizeof(waProcessAudio), NORMALPRIO, ProcessAudio, NULL);
+}
+
+static THD_WORKING_AREA(waPiRegulator, 256);
+static THD_FUNCTION(PiRegulator, arg) {
+
+}
+
 /*
 *	Callback called when the demodulation of the four microphones is done.
 *	We get 160 samples per mic every 10ms (16kHz)
