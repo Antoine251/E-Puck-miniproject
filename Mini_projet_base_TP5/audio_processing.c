@@ -25,15 +25,6 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
-void process_audio_start(void){
-	chThdCreateStatic(waProcessAudio, sizeof(waProcessAudio), NORMALPRIO, ProcessAudio, NULL);
-}
-
-static THD_WORKING_AREA(waPiRegulator, 256);
-static THD_FUNCTION(PiRegulator, arg) {
-
-}
-
 /*
 *	Callback called when the demodulation of the four microphones is done.
 *	We get 160 samples per mic every 10ms (16kHz)
@@ -53,7 +44,44 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	*
 	*/
 
-	
+	static uint16_t compteur = 0;
+	uint8_t sem_ready = 0;
+	static uint8_t must_send = 0;
+
+	for(uint16_t i = 0; i < num_samples; i += 4) {
+		micRight_cmplx_input[compteur] = data[i];
+		micRight_cmplx_input[compteur+1] = 0;
+		micLeft_cmplx_input[compteur] = data[i+1];
+		micLeft_cmplx_input[compteur+1] = 0;
+		micBack_cmplx_input[compteur] = data[i+2];
+		micBack_cmplx_input[compteur+1] = 0;
+		micFront_cmplx_input[compteur] = data[i+3];
+		micFront_cmplx_input[compteur+1] = 0;
+
+		if (compteur == 2 * FFT_SIZE){
+			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
+			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+			compteur = 0;
+			sem_ready = 1;
+		} else {
+			compteur += 2;
+		}
+	}
+
+	// activate the semaphore
+	if (sem_ready && (must_send == 8)) {
+		chBSemSignal(&sendToComputer_sem);
+		//chprintf((BaseSequentialStream *)&SDU1, "test \n");
+		must_send = 0;
+		move_motor();
+	} else {
+		if (sem_ready) {
+			must_send++;
+		}
+	}
+	//chprintf((BaseSequentialStream *)&SDU1, ".");
+	sem_ready = 0;
+
 }
 
 

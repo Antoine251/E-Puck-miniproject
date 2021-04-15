@@ -17,8 +17,6 @@ typedef enum {
 	BACK_OUTPUT
 } BUFFER_NAME_t;
 
-void process_audio_start(void);
-
 void processAudioData(int16_t *data, uint16_t num_samples);
 
 /*

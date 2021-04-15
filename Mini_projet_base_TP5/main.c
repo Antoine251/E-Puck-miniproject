@@ -64,8 +64,6 @@ int main(void)
     timer12_start();
     //inits the motors
     motors_init();
-    //inits the thread to process the audio
-    process_audio_start();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
