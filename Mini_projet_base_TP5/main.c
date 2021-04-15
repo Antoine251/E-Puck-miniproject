@@ -67,8 +67,7 @@ int main(void)
     timer12_start();
     //inits the motors
     motors_init();
-    //inits the thread to process the audio
-    process_audio_start();
+
     //inits and calibrates the thread to process sensors //ordre important ?
     chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
     proximity_start();
