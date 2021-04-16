@@ -16,7 +16,7 @@
 #include <arm_math.h>
 
 #include "capteur_proxi.h" //decarer la thread dans le .h ??
-#include "proximity.h"
+//#include "proximity.h"
 
 //uncomment to send the FFTs results from the real microphones
 #define SEND_FROM_MIC
@@ -69,9 +69,9 @@ int main(void)
     motors_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
-    chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
-    proximity_start();
-    calibrate_ir();
+    //chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
+    //proximity_start();
+    //calibrate_ir();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
