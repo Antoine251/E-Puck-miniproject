@@ -12,12 +12,12 @@
 #include <arm_math.h>
 
 #define FREQ_MAX_SPEED      	512  //8000 Hz
-#define FREQ_SPEED_NUL_MIN  	272  //4250 - 4750 Hz --> On avance tout droit sur une range de fréquence
-#define FREQ_SPEED_NUL_MAX  	304
-#define FREQ_MIN_SPEED      	64   //1000 Hz
-#define THRESHOLD           	30000 //seuil de détection du son
-#define MAX_CORRECTION_SPEED	624 //step par seconde
-#define COEF_CORRECTION			3
+#define FREQ_SPEED_NUL_MIN  	304  //4750 - 5250 Hz --> On avance tout droit sur une range de fréquence
+#define FREQ_SPEED_NUL_MAX  	336
+#define FREQ_MIN_SPEED      	128   //2000 Hz
+#define THRESHOLD           	10000 //seuil de détection du son
+#define MAX_CORRECTION_SPEED	176 //step par seconde
+#define COEF_CORRECTION			1
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -33,8 +33,8 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
-uint16_t rotation_speed_left = 0;   //coef entre 0 et 1 muiltiplié par 100 pour travailler avec des int
-uint16_t rotation_speed_right = 0;  //appliqué a la vitesse du moteur pour la rotation de l'EPUCK
+int16_t rotation_speed_left = 0;   //coef entre 0 et 1 muiltiplié par 100 pour travailler avec des int
+int16_t rotation_speed_right = 0;  //appliqué a la vitesse du moteur pour la rotation de l'EPUCK
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
@@ -58,6 +58,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
 	static uint8_t must_send = 0;
+	int16_t max_valu = 0;
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
 		micRight_cmplx_input[compteur] = data[i];
@@ -68,8 +69,11 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		micBack_cmplx_input[compteur+1] = 0;
 		micFront_cmplx_input[compteur] = data[i+3];
 		micFront_cmplx_input[compteur+1] = 0;
+		if (max_valu < data[i+1]) {
+			max_valu = data[i+1];
+		}
 
-		if (compteur == 2 * FFT_SIZE){
+		if (compteur == 2 * FFT_SIZE) {
 			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			compteur = 0;
@@ -84,13 +88,13 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		chBSemSignal(&sendToComputer_sem);
 		must_send = 0;
 		compute_motor_speed();
+		chprintf((BaseSequentialStream *)&SDU1, "max valu = %d \n", max_valu);
 	} else {
 		if (sem_ready) {
 			must_send++;
 		}
 	}
 	sem_ready = 0;
-
 }
 
 
@@ -128,38 +132,51 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 	}
 }
 
-//Détecte le pic en fréquence ansi que son intensité et associe une vitesse
-//pour le moteur gauche et droite
+//Détecte le pic en fréquence et associe une vitessea additionner à la valeur déterminée
+//par l'intensité du son pour le moteur gauche et droite
 void compute_motor_speed() {
-	uint16_t pic_haut = 0;
-	uint16_t pic_bas = 0;
+	//uint16_t pic_haut = 0;
+	//uint16_t pic_bas = 0;
 	uint16_t pic_detect = 0;
+	uint16_t max_value = 0;
 	for(uint16_t  i = FREQ_MIN_SPEED; i < FREQ_MAX_SPEED; ++i) {
-		if(micLeft_output[i] > THRESHOLD) {
-			pic_haut = i;
-		}
-		if(micLeft_output[i] < THRESHOLD && pic_haut) {
-			pic_bas = i;
-			break;
+		if(micLeft_output[i] > max_value) {
+			max_value = micLeft_output[i];
+			pic_detect = i;
 		}
 	}
-	if (pic_haut && pic_bas) {
-		pic_detect = (pic_haut + pic_bas)/2;
-	} else {
-		pic_detect = 0;
-	}
+//		if(micLeft_output[i] > THRESHOLD) {
+//			pic_haut = i;
+//		}
+//		if(micLeft_output[i] < THRESHOLD && pic_haut) {
+//			pic_bas = i;
+//			break;
+//		}
+//	}
+//	if (pic_haut && pic_bas) {
+//		pic_detect = (pic_haut + pic_bas)/2;
+//	} else {
+//		pic_detect = 0;
+//	}
+	//chprintf((BaseSequentialStream *)&SDU1, "max value = %d \n", max_value);
 
 	if (pic_detect > FREQ_SPEED_NUL_MIN && pic_detect < FREQ_SPEED_NUL_MAX) {
-		rotation_speed_left_coef = 0;
-		rotation_speed_right_coef = 0;
+		rotation_speed_left = 0;
+		rotation_speed_right = 0;
 	} else if (pic_detect < FREQ_SPEED_NUL_MIN && pic_detect > FREQ_MIN_SPEED) {
 		rotation_speed_left = -(FREQ_SPEED_NUL_MIN - pic_detect)*COEF_CORRECTION;
 		rotation_speed_right = (FREQ_SPEED_NUL_MIN - pic_detect)*COEF_CORRECTION;
 	} else if (pic_detect > FREQ_SPEED_NUL_MAX && pic_detect < FREQ_MAX_SPEED) {
 		rotation_speed_left = (pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
 		rotation_speed_right = -(pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
+	} else if(pic_detect < FREQ_MIN_SPEED) {
+		rotation_speed_left = -MAX_CORRECTION_SPEED;
+		rotation_speed_right = MAX_CORRECTION_SPEED;
 	} else {
 		rotation_speed_left = 0;
 		rotation_speed_right = 0;
 	}
+	chprintf((BaseSequentialStream *)&SDU1, "moteur gauche = %d; moteur droite = %d \n", rotation_speed_left, rotation_speed_right);
+	//left_motor_set_speed(rotation_speed_left);
+	//right_motor_set_speed(rotation_speed_right);
 }
