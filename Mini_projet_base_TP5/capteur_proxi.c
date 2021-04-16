@@ -23,7 +23,7 @@ static THD_FUNCTION(proxi_thd, arg){
 		for(uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; ++i){
 			proxi_values = get_calibrated_prox(i);
 
-			chThdSleepMilliseconds(20);
+			chThdSleepMilliseconds(50); //20x par seconde
 		}
 	}
 
