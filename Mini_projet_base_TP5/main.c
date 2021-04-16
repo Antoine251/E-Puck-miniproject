@@ -69,9 +69,9 @@ int main(void)
     motors_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
-    //chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
-    //proximity_start();
-    //calibrate_ir();
+    chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
+    proximity_start();
+    calibrate_ir();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
