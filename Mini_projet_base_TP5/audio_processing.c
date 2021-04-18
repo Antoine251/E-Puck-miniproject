@@ -15,6 +15,7 @@
 #define FREQ_SPEED_NUL_MIN  	304  //4750 - 5250 Hz --> On avance tout droit sur une range de fréquence
 #define FREQ_SPEED_NUL_MAX  	336
 #define FREQ_MIN_SPEED      	128   //2000 Hz
+#define FREQ_MIN_DETECT			64    //1000 Hz (limite inférieur de l'application qui émet les fréquences
 #define THRESHOLD           	10000 //seuil de détection du son
 #define MAX_CORRECTION_SPEED	176 //step par seconde
 #define COEF_CORRECTION			1
@@ -58,7 +59,11 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
 	static uint8_t must_send = 0;
+	int16_t somme_max_valu = 0;
 	int16_t max_valu = 0;
+	static float mean_value = 0;
+	static uint16_t compteurbis = 0;
+	uint8_t nbrValeur = 10;
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
 		micRight_cmplx_input[compteur] = data[i];
@@ -71,6 +76,13 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		micFront_cmplx_input[compteur+1] = 0;
 		if (max_valu < data[i+1]) {
 			max_valu = data[i+1];
+			somme_max_valu += data[i+1];
+			if(compteurbis == nbrValeur) {
+				mean_value = somme_max_valu/nbrValeur;
+				compteurbis = 0;
+				somme_max_valu = 0;
+				chprintf((BaseSequentialStream *)&SDU1, "max valu = %f \n", mean_value);
+			}
 		}
 
 		if (compteur == 2 * FFT_SIZE) {
@@ -88,7 +100,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		chBSemSignal(&sendToComputer_sem);
 		must_send = 0;
 		compute_motor_speed();
-		chprintf((BaseSequentialStream *)&SDU1, "max valu = %d \n", max_valu);
 	} else {
 		if (sem_ready) {
 			must_send++;
@@ -139,7 +150,7 @@ void compute_motor_speed() {
 	//uint16_t pic_bas = 0;
 	uint16_t pic_detect = 0;
 	uint16_t max_value = 0;
-	for(uint16_t  i = FREQ_MIN_SPEED; i < FREQ_MAX_SPEED; ++i) {
+	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
 		if(micLeft_output[i] > max_value) {
 			max_value = micLeft_output[i];
 			pic_detect = i;
@@ -176,7 +187,9 @@ void compute_motor_speed() {
 		rotation_speed_left = 0;
 		rotation_speed_right = 0;
 	}
-	chprintf((BaseSequentialStream *)&SDU1, "moteur gauche = %d; moteur droite = %d \n", rotation_speed_left, rotation_speed_right);
+
+	uint16_t pic_detect_ = pic_detect*15.625;
+	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
 }
