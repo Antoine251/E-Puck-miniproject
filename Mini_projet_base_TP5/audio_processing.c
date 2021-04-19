@@ -19,6 +19,7 @@
 #define THRESHOLD           	10000 //seuil de détection du son
 #define MAX_CORRECTION_SPEED	176 //step par seconde
 #define COEF_CORRECTION			1
+#define NBR_VALEUR_MOYENNE		40  //affiche la valeur moyenne de l'intensité reçu sur 100 cycles
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -59,11 +60,10 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
 	static uint8_t must_send = 0;
-	int16_t somme_max_valu = 0;
+	static int32_t somme_max_valu = 0;
 	int16_t max_valu = 0;
-	static float mean_value = 0;
+	int16_t mean_value = 0;
 	static uint16_t compteurbis = 0;
-	uint8_t nbrValeur = 10;
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
 		micRight_cmplx_input[compteur] = data[i];
@@ -76,13 +76,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		micFront_cmplx_input[compteur+1] = 0;
 		if (max_valu < data[i+1]) {
 			max_valu = data[i+1];
-			somme_max_valu += data[i+1];
-			if(compteurbis == nbrValeur) {
-				mean_value = somme_max_valu/nbrValeur;
-				compteurbis = 0;
-				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "max valu = %f \n", mean_value);
-			}
 		}
 
 		if (compteur == 2 * FFT_SIZE) {
@@ -90,6 +83,17 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			compteur = 0;
 			sem_ready = 1;
+
+			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
+			somme_max_valu += max_valu;
+			//chprintf((BaseSequentialStream *)&SDU1, "max value = %d; somme = %d \n", max_valu, somme_max_valu);
+			++compteurbis;
+			if(compteurbis == NBR_VALEUR_MOYENNE) {
+				mean_value = somme_max_valu/NBR_VALEUR_MOYENNE;
+				compteurbis = 0;
+				somme_max_valu = 0;
+				chprintf((BaseSequentialStream *)&SDU1, "       mean valu = %d \n", mean_value);
+			}
 		} else {
 			compteur += 2;
 		}
@@ -189,7 +193,7 @@ void compute_motor_speed() {
 	}
 
 	uint16_t pic_detect_ = pic_detect*15.625;
-	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
+	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
 }
