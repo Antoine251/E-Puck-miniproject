@@ -63,8 +63,9 @@ static THD_FUNCTION(proxi_thd, arg){
 }
 
 void capteur_proxi_start(void){
-    //proximity_start(); //probleme vient d'ici, a cause de messagebus ??
+	chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
+	//proximity_start(); //probleme vient d'ici, a cause de messagebus ??
     calibrate_ir();
-    chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
+
 }
 
