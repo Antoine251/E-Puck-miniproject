@@ -3,6 +3,7 @@
 #include <main.h>
 #include <usbcfg.h>
 #include <chprintf.h>
+#include <mailboxe.h>
 
 #include <motors.h>
 #include <audio/microphone.h>
@@ -194,6 +195,21 @@ void compute_motor_speed() {
 
 	uint16_t pic_detect_ = pic_detect*15.625;
 	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
+
+	msg_t motor_speed_left_correction = rotation_speed_left;
+	msg_t motor_speed_right_correction = rotation_speed_right;
+	mailbox_t * mail_boxe_ptr = get_mailboxe_adr();
+	chSysLock();
+	chMBPostI(get_mailboxe_adr(), motor_speed_left_correction);
+	chMBPostI(get_mailboxe_adr(), motor_speed_right_correction);
+	chSysUnlock();
+
+	chSysLock();
+	size_t mailboxe_size = chMBGetUsedCountI(get_mailboxe_adr());
+	chSysUnlock();
+	chprintf((BaseSequentialStream *)&SDU1, " adresse = %d; taille mailboxe = %d \n", mail_boxe_ptr, mailboxe_size);
+
+
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
 }
