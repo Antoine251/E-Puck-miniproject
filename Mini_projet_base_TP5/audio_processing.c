@@ -12,9 +12,9 @@
 #include <arm_math.h>
 
 #define FREQ_MAX_SPEED      	512  //8000 Hz
-#define FREQ_SPEED_NUL_MIN  	304  //4750 - 5250 Hz --> On avance tout droit sur une range de fréquence
+#define FREQ_SPEED_NUL_MIN  	304  //5880 - 6020 Hz --> On avance tout droit sur une range de fréquence
 #define FREQ_SPEED_NUL_MAX  	336
-#define FREQ_MIN_SPEED      	128   //2000 Hz
+#define FREQ_MIN_SPEED      	256   //4000 Hz
 #define FREQ_MIN_DETECT			64    //1000 Hz (limite inférieur de l'application qui émet les fréquences
 #define THRESHOLD           	10000 //seuil de détection du son
 #define MAX_CORRECTION_SPEED	176 //step par seconde
@@ -92,7 +92,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_value = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "       mean valu = %d \n", mean_value);
+				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
 			}
 		} else {
 			compteur += 2;
@@ -193,7 +193,7 @@ void compute_motor_speed() {
 	}
 
 	uint16_t pic_detect_ = pic_detect*15.625;
-	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
+	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
 }
