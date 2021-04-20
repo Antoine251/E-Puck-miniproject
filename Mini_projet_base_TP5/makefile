@@ -14,6 +14,7 @@ CSRC += ./main.c \
 		./communications.c \
 		./fft.c \
 		./mailboxe.c \
+		./capteur_proxi.c \
 
 #Header folders to include
 INCDIR += 
