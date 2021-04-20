@@ -9,13 +9,14 @@
 #include <chprintf.h>
 #include <motors.h>
 #include <audio/microphone.h>
+//#include <sensors/proximity.h>
 
 #include <audio_processing.h>
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
 
-#include "capteur_proxi.h" //decarer la thread dans le .h ??
+#include <capteur_proxi.h> //decarer la thread dans le .h ??
 //#include "proximity.h"
 
 //uncomment to send the FFTs results from the real microphones
@@ -69,9 +70,7 @@ int main(void)
     motors_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
-//    chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
-//    proximity_start();
-//    calibrate_ir();
+    capteur_proxi_start();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
