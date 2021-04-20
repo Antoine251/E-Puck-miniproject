@@ -3,5 +3,4 @@
 
 mailbox_t * get_mailboxe_adr(void);
 
-
 #endif /* MAILBOXE_H_ */
