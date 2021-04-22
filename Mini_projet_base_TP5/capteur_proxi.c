@@ -25,8 +25,6 @@
 #define PROXI_FFL 	 7 	//front front left 			proximity sensor (-18° relative to front)
 
 
-static int proxi_values[PROXIMITY_NB_CHANNELS]; //besoin static ?
-
 /***************************INTERNAL FUNCTIONS************************************/
 
 static THD_WORKING_AREA(proxi_thd_wa, 256); //256 ou moins ?
@@ -40,12 +38,13 @@ static THD_FUNCTION(proxi_thd, arg){
 		int max_proxi_value = 0;
 		uint8_t max_proxi_chanel = 0;
 
+		int proxi_value = 0;
 		for(uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; ++i){
 
-			proxi_values[i] = get_calibrated_prox(i); //a quel capteur corespondent 0,1,2...7 ?
+			proxi_value = get_calibrated_prox(i); //a quel capteur corespondent 0,1,2...7 ?
 
-			if(proxi_values[i] > max_proxi_value){
-				max_proxi_value = proxi_values[i];
+			if(proxi_value > max_proxi_value){
+				max_proxi_value = proxi_value;
 				//chprintf((BaseSequentialStream *)&SDU1, "proxi values capteur %d : %d \n", i, proxi_values[i]);
 				max_proxi_chanel = i;
 			}

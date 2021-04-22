@@ -65,7 +65,7 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    messagebus_init(&bus, &bus_lock, &bus_condvar); //
+    messagebus_init(&bus, &bus_lock, &bus_condvar); //car bus utilisé dans proximity
 
     //starts the serial communication
     serial_start();
