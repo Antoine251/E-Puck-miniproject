@@ -21,14 +21,14 @@ static THD_FUNCTION(motor_thd, arg){
     	chMBFetchI(get_mailboxe_micro_adr(), &message_received_motor_left);
     	chMBFetchI(get_mailboxe_micro_adr(), &message_received_motor_right);
     	chSysUnlock();
-    	chprintf((BaseSequentialStream *)&SDU1, "moteur gauche = %d; moteur droite = %d \n", message_received_motor_left, message_received_motor_right);
+    	//chprintf((BaseSequentialStream *)&SDU1, "moteur gauche = %d; moteur droite = %d \n", message_received_motor_left, message_received_motor_right);
 
     	//reçoit les informations des capteurs de proximité
     	msg_t message_received_proximity;
     	chSysLock();
     	chMBFetchI(get_mailboxe_proximity_adr(), &message_received_proximity);
     	chSysUnlock();
-    	chprintf((BaseSequentialStream *)&SDU1, "etat obstacle = %d \n", message_received_proximity);
+    	//chprintf((BaseSequentialStream *)&SDU1, "etat obstacle = %d \n", message_received_proximity);
 
     	int16_t rotation_speed_right = message_received_motor_right;
     	int16_t rotation_speed_left = message_received_motor_left;

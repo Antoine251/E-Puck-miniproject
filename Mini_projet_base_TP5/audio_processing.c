@@ -156,7 +156,7 @@ void compute_motor_speed() {
 	uint16_t pic_detect = 0;
 	uint16_t max_value = 0;
 	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
-		if(micLeft_output[i] > max_value) {
+		if(micLeft_output[i] > max_value && micLeft_output[i] > THRESHOLD) {
 			max_value = micLeft_output[i];
 			pic_detect = i;
 		}
@@ -185,7 +185,7 @@ void compute_motor_speed() {
 	} else if (pic_detect > FREQ_SPEED_NUL_MAX && pic_detect < FREQ_MAX_SPEED) {
 		rotation_speed_left = (pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
 		rotation_speed_right = -(pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
-	} else if(pic_detect < FREQ_MIN_SPEED) {
+	} else if(pic_detect < FREQ_MIN_SPEED && pic_detect > FREQ_MIN_DETECT) {
 		rotation_speed_left = -MAX_CORRECTION_SPEED;
 		rotation_speed_right = MAX_CORRECTION_SPEED;
 	} else {
