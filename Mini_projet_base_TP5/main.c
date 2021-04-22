@@ -77,7 +77,7 @@ int main(void)
     motors_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
-    //capteur_proxi_start();
+    capteur_proxi_start();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
