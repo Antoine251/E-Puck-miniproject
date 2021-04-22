@@ -199,10 +199,10 @@ void compute_motor_speed() {
 	//Poste les vitesses calculées dans la mailboxe
 	msg_t motor_speed_left_correction = rotation_speed_left;
 	msg_t motor_speed_right_correction = rotation_speed_right;
-	mailbox_t * mail_boxe_ptr = get_mailboxe_adr();
+	mailbox_t * mail_boxe_ptr = get_mailboxe_micro_adr();
 	chSysLock();
-	chMBPostI(get_mailboxe_adr(), motor_speed_left_correction);
-	chMBPostI(get_mailboxe_adr(), motor_speed_right_correction);
+	chMBPostI(mail_boxe_ptr, motor_speed_left_correction);
+	chMBPostI(mail_boxe_ptr, motor_speed_right_correction);
 	chSysUnlock();
 
 //	chSysLock();
