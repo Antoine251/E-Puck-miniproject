@@ -1,33 +1,29 @@
-#include "ch.h"
-#include "hal.h"
-#include <sensors/proximity.h>
+#include <ch.h>
+#include <hal.h>
 #include <chprintf.h>
 
+#include <sensors/proximity.h>
+#include <mailboxe.h>
 
 
 
 
-#define PROXI_THRESHOLD 0 // a definir -> trouver quelle est la valeur recu quand on touche dans le worst case, definir le seuil a partir de là
 
-//aucune idée lequel est lequel (sensor = numéro)
-#define PROXI_FL 	 0 	//front left  		proximity sensor (-30° relative to front)
-#define PROXI_FR 	 1 	//front right 		proximity sensor (30° relative to front)
-#define PROXI_L 	 2	//left        		proximity sensor (-90° relative to front)
-#define PROXI_R 	 3 	//right 			proximity sensor (90° relative to front)
-#define PROXI_BLL 	 4 	//back left left 	proximity sensor (-131° relative to front)
-#define PROXI_BRR 	 5 	//back right right  proximity sensor (131° relative to front)
-#define PROXI_BBL 	 6 	//back back left 	proximity sensor (-162° relative to front)
-#define PROXI_BBR 	 7 	//back back right 	proximity sensor (162° relative to front)
+#define PROXI_THRESHOLD 100 //expliquer dans rapport -> worst case, position a env 1cm
 
+#define PROXI_FFR 	 0 	//front front right  		proximity sensor (+18° relative to front)
+#define PROXI_FRR 	 1 	//front right right 		proximity sensor (+49° relative to front)
+#define PROXI_R 	 2	//right        				proximity sensor (+90° relative to front)
+#define PROXI_BR 	 3 	//back right 				proximity sensor (+150° relative to front)
+#define PROXI_BL 	 4 	//back left 				proximity sensor (-150° relative to front)
+#define PROXI_L 	 5 	//left  					proximity sensor (-90° relative to front)
+#define PROXI_FLL 	 6 	//front left left 			proximity sensor (-49° relative to front)
+#define PROXI_FFL 	 7 	//front front left 			proximity sensor (-18° relative to front)
 
-//detection avec les capteur IR
-//threat interne a proximity.c
-//peu de fonction externe
-//droit de libérer le semaphore adc2_ready ? que utilisé dans adc_cb
-//besoin d'une autre semaphore pour attendre que les donnée soit publiée, avant de les recup avec get_prox ?
 
 static int proxi_values[PROXIMITY_NB_CHANNELS]; //besoin static ?
 
+/***************************INTERNAL FUNCTIONS************************************/
 
 static THD_WORKING_AREA(proxi_thd_wa, 256); //256 ou moins ?
 static THD_FUNCTION(proxi_thd, arg){
@@ -46,14 +42,15 @@ static THD_FUNCTION(proxi_thd, arg){
 
 			if(proxi_values[i] > max_proxi_value){
 				max_proxi_value = proxi_values[i];
-				chprintf((BaseSequentialStream *)&SD3, "proxi values capteur %d : %d \n", i, proxi_values[i]);
+				//chprintf((BaseSequentialStream *)&SD3, "proxi values capteur %d : %d \n", i, proxi_values[i]);
 				max_proxi_chanel = i;
 			}
 		}
 
 		if(max_proxi_value > PROXI_THRESHOLD){ //an obstacle is seen
-			if((max_proxi_chanel == PROXI_FL) || (max_proxi_chanel == PROXI_FR) ||
-			   (max_proxi_chanel == PROXI_L) || (max_proxi_chanel == PROXI_R)){ //one of the 4 front sensor (including the side) sees an obstacle
+			if((max_proxi_chanel == PROXI_FFL) || (max_proxi_chanel == PROXI_FFR) ||
+			   (max_proxi_chanel == PROXI_FLL) || (max_proxi_chanel == PROXI_FRR) ||
+			   (max_proxi_chanel == PROXI_L)   || (max_proxi_chanel == PROXI_R)){ //one of the 6 front sensor (including the side) sees an obstacle
 				//avant -> mailbox autoriser que la rota
 			}else{
 				//arriere -> mailbox pas moy_roue < 0
@@ -66,9 +63,16 @@ static THD_FUNCTION(proxi_thd, arg){
 	}
 }
 
+/*************************END INTERNAL FUNCTIONS**********************************/
+
+
+/****************************PUBLIC FUNCTIONS*************************************/
+
 void capteur_proxi_start(void){
 	chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
 	proximity_start(); //probleme vient d'ici, a cause de messagebus ??
 
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
 
