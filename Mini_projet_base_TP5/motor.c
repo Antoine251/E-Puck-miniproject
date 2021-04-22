@@ -5,9 +5,9 @@
 #include <motors.h>
 #include <mailboxe.h>
 
-#include <capteur_proxi.h> //include pour avoir les define des etat du proximity
+#include <capteur_proxi.h> //include pour avoir les #define de etat_obstacle
 
-//ajouter des com pour expliciter les actions faites
+/***************************INTERNAL FUNCTIONS************************************/
 
 static THD_WORKING_AREA(motor_thd_wa, 256);
 static THD_FUNCTION(motor_thd, arg){
@@ -39,17 +39,17 @@ static THD_FUNCTION(motor_thd, arg){
     	int16_t vit_moy = rotation_speed_left/2 + rotation_speed_right/2;
 
     	switch(etat_obstacle){
-    	case PAS_OBSTACLE :
+    	case PAS_OBSTACLE : 	//avance suivant les instruction de l'utilisateur
     		left_motor_set_speed(rotation_speed_left);
     		right_motor_set_speed(rotation_speed_right);
     		break;
 
-    	case OBSTACLE_AVANT :
+    	case OBSTACLE_AVANT : 	//autorise que la rotation sur place
     		left_motor_set_speed(rotation_speed_left - vit_moy);
     		right_motor_set_speed(rotation_speed_right - vit_moy);
     		break;
 
-    	case OBSTACLE_ARRIERE :
+    	case OBSTACLE_ARRIERE : //bloque la direction en arrière
     		if(vit_moy < 0){
     			left_motor_set_speed(rotation_speed_left - vit_moy);
     			right_motor_set_speed(rotation_speed_right - vit_moy);
@@ -65,7 +65,14 @@ static THD_FUNCTION(motor_thd, arg){
     }
 }
 
+/*************************END INTERNAL FUNCTIONS**********************************/
+
+
+/****************************PUBLIC FUNCTIONS*************************************/
+
 void motor_start(void){
 	chThdCreateStatic(motor_thd_wa, sizeof(motor_thd_wa), NORMALPRIO, motor_thd, NULL);
 	motors_init();
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
