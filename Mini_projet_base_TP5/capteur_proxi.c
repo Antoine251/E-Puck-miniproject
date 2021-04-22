@@ -7,6 +7,8 @@
 #include <sensors/proximity.h>
 #include <mailboxe.h>
 
+#include <capteur_proxi.h>
+
 
 
 
@@ -49,17 +51,28 @@ static THD_FUNCTION(proxi_thd, arg){
 			}
 		}
 
+		uint8_t etat_obs = PAS_OBSTACLE;
 		if(max_proxi_value > PROXI_THRESHOLD){ //an obstacle is seen
 			if((max_proxi_chanel == PROXI_FFL) || (max_proxi_chanel == PROXI_FFR) ||
 			   (max_proxi_chanel == PROXI_FLL) || (max_proxi_chanel == PROXI_FRR) ||
 			   (max_proxi_chanel == PROXI_L)   || (max_proxi_chanel == PROXI_R)){ //one of the 6 front sensor (including the side) sees an obstacle
 				//avant -> mailbox autoriser que la rota
+				etat_obs = OBSTACLE_AVANT;
 			}else{
 				//arriere -> mailbox pas moy_roue < 0
+				etat_obs = OBSTACLE_ARRIERE;
 			}
 		}else{
-			//mailbox no obstacle ??
+			//mailbox no obstacle
+			etat_obs = PAS_OBSTACLE;
 		}
+
+		msg_t etat_obstacle = etat_obs;
+		chSysLock();
+		chMBPostI(get_mailboxe_proximity_adr(), etat_obstacle);
+		chSysUnlock();
+
+		//chMBPostI(get_mailboxe_proximity_adr(), (msg_t) etat_obs); //marche ? evite 2-3 lignes
 
 		chThdSleepMilliseconds(50); //20x par seconde
 	}
