@@ -1,6 +1,7 @@
 #include "ch.h"
 #include "hal.h"
 #include <sensors/proximity.h>
+#include <chprintf.h>
 
 
 
@@ -34,15 +35,18 @@ static THD_FUNCTION(proxi_thd, arg){
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+    calibrate_ir(); // ou le mettre
 	while(1){
 		int max_proxi_value = 0;
 		uint8_t max_proxi_chanel = 0;
 
 		for(uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; ++i){
+
 			proxi_values[i] = get_calibrated_prox(i); //a quel capteur corespondent 0,1,2...7 ?
 
 			if(proxi_values[i] > max_proxi_value){
 				max_proxi_value = proxi_values[i];
+				chprintf((BaseSequentialStream *)&SD3, "proxi values capteur %d : %d \n", i, proxi_values[i]);
 				max_proxi_chanel = i;
 			}
 		}
@@ -64,8 +68,7 @@ static THD_FUNCTION(proxi_thd, arg){
 
 void capteur_proxi_start(void){
 	chThdCreateStatic(proxi_thd_wa, sizeof(proxi_thd_wa), NORMALPRIO, proxi_thd, NULL);
-	//proximity_start(); //probleme vient d'ici, a cause de messagebus ??
-    calibrate_ir();
+	proximity_start(); //probleme vient d'ici, a cause de messagebus ??
 
 }
 

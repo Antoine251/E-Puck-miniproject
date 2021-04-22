@@ -25,6 +25,11 @@
 //uncomment to use double buffering to send the FFT to the computer
 #define DOUBLE_BUFFERING
 
+messagebus_t bus; 			//defini car utilisation de bus pour proximity.c
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
+
+
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -59,6 +64,8 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
+
+    messagebus_init(&bus, &bus_lock, &bus_condvar); //
 
     //starts the serial communication
     serial_start();
