@@ -7,6 +7,8 @@
 
 #include <capteur_proxi.h> //include pour avoir les define des etat du proximity
 
+//ajouter des com pour expliciter les actions faites
+
 static THD_WORKING_AREA(motor_thd_wa, 256);
 static THD_FUNCTION(motor_thd, arg){
 
