@@ -70,7 +70,7 @@ int main(void)
     motors_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
-    capteur_proxi_start();
+    //capteur_proxi_start();
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
@@ -89,6 +89,7 @@ int main(void)
         wait_send_to_computer();
         //#ifdef DOUBLE_BUFFERING
         //we copy the buffer to avoid conflicts
+        chprintf((BaseSequentialStream *)&SD3, "test \n");
         arm_copy_f32(get_audio_buffer_ptr(LEFT_OUTPUT), send_tab, FFT_SIZE);
         SendFloatToComputer((BaseSequentialStream *) &SD3, send_tab, FFT_SIZE);
 //#else
