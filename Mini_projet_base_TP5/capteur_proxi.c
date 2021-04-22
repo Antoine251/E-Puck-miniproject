@@ -1,5 +1,6 @@
 #include "ch.h"
 #include "hal.h"
+#include <usbcfg.h>
 #include <sensors/proximity.h>
 #include <chprintf.h>
 
@@ -7,24 +8,24 @@
 
 
 
-#define PROXI_THRESHOLD 0 // a definir -> trouver quelle est la valeur recu quand on touche dans le worst case, definir le seuil a partir de là
+#define PROXI_THRESHOLD 0 // a definir -> trouver quelle est la valeur recu quand on touche dans le worst case, definir le seuil a partir de lï¿½
 
-//aucune idée lequel est lequel (sensor = numéro)
-#define PROXI_FL 	 0 	//front left  		proximity sensor (-30° relative to front)
-#define PROXI_FR 	 1 	//front right 		proximity sensor (30° relative to front)
-#define PROXI_L 	 2	//left        		proximity sensor (-90° relative to front)
-#define PROXI_R 	 3 	//right 			proximity sensor (90° relative to front)
-#define PROXI_BLL 	 4 	//back left left 	proximity sensor (-131° relative to front)
-#define PROXI_BRR 	 5 	//back right right  proximity sensor (131° relative to front)
-#define PROXI_BBL 	 6 	//back back left 	proximity sensor (-162° relative to front)
-#define PROXI_BBR 	 7 	//back back right 	proximity sensor (162° relative to front)
+//aucune idï¿½e lequel est lequel (sensor = numï¿½ro)
+#define PROXI_FL 	 0 	//front left  		proximity sensor (-30ï¿½ relative to front)
+#define PROXI_FR 	 1 	//front right 		proximity sensor (30ï¿½ relative to front)
+#define PROXI_L 	 2	//left        		proximity sensor (-90ï¿½ relative to front)
+#define PROXI_R 	 3 	//right 			proximity sensor (90ï¿½ relative to front)
+#define PROXI_BLL 	 4 	//back left left 	proximity sensor (-131ï¿½ relative to front)
+#define PROXI_BRR 	 5 	//back right right  proximity sensor (131ï¿½ relative to front)
+#define PROXI_BBL 	 6 	//back back left 	proximity sensor (-162ï¿½ relative to front)
+#define PROXI_BBR 	 7 	//back back right 	proximity sensor (162ï¿½ relative to front)
 
 
 //detection avec les capteur IR
 //threat interne a proximity.c
 //peu de fonction externe
-//droit de libérer le semaphore adc2_ready ? que utilisé dans adc_cb
-//besoin d'une autre semaphore pour attendre que les donnée soit publiée, avant de les recup avec get_prox ?
+//droit de libï¿½rer le semaphore adc2_ready ? que utilisï¿½ dans adc_cb
+//besoin d'une autre semaphore pour attendre que les donnï¿½e soit publiï¿½e, avant de les recup avec get_prox ?
 
 static int proxi_values[PROXIMITY_NB_CHANNELS]; //besoin static ?
 
@@ -46,7 +47,7 @@ static THD_FUNCTION(proxi_thd, arg){
 
 			if(proxi_values[i] > max_proxi_value){
 				max_proxi_value = proxi_values[i];
-				chprintf((BaseSequentialStream *)&SD3, "proxi values capteur %d : %d \n", i, proxi_values[i]);
+				//chprintf((BaseSequentialStream *)&SDU1, "proxi values capteur %d : %d \n", i, proxi_values[i]);
 				max_proxi_chanel = i;
 			}
 		}

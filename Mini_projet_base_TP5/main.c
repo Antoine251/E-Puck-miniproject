@@ -7,7 +7,6 @@
 #include <usbcfg.h>
 #include <main.h>
 #include <chprintf.h>
-#include <motors.h>
 #include <audio/microphone.h>
 //#include <sensors/proximity.h>
 
@@ -15,6 +14,7 @@
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
+#include <motor.h>
 
 #include <capteur_proxi.h> //decarer la thread dans le .h ??
 //#include "proximity.h"
@@ -74,7 +74,7 @@ int main(void)
     //starts timer 12
     timer12_start();
     //inits the motors
-    motors_init();
+    motor_start();
 
     //inits and calibrates the thread to process sensors //ordre important ?
     capteur_proxi_start();

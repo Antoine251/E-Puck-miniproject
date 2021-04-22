@@ -16,7 +16,7 @@
 #define FREQ_SPEED_NUL_MIN  	383  //5980 - 6020 Hz --> On avance tout droit sur une range de fréquence
 #define FREQ_SPEED_NUL_MAX  	385
 #define FREQ_MIN_SPEED      	256   //4000 Hz
-#define FREQ_MIN_DETECT			64    //1000 Hz (limite inférieur de l'application qui émet les fréquences
+#define FREQ_MIN_DETECT			128    //2000 Hz (limite inférieur de l'application qui émet les fréquences
 #define THRESHOLD           	10000 //seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
 #define COEF_CORRECTION			1
@@ -93,7 +93,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_value = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
+				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
 			}
 		} else {
 			compteur += 2;
@@ -197,25 +197,18 @@ void compute_motor_speed() {
 	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
-//	msg_t motor_speed_left_correction = rotation_speed_left;
-//	msg_t motor_speed_right_correction = rotation_speed_right;
-//	mailbox_t * mail_boxe_ptr = get_mailboxe_adr();
-//	chSysLock();
-//	chMBPostI(get_mailboxe_adr(), motor_speed_left_correction);
-//	chMBPostI(get_mailboxe_adr(), motor_speed_right_correction);
-//	chSysUnlock();
-//
+	msg_t motor_speed_left_correction = rotation_speed_left;
+	msg_t motor_speed_right_correction = rotation_speed_right;
+	mailbox_t * mail_boxe_ptr = get_mailboxe_adr();
+	chSysLock();
+	chMBPostI(get_mailboxe_adr(), motor_speed_left_correction);
+	chMBPostI(get_mailboxe_adr(), motor_speed_right_correction);
+	chSysUnlock();
+
 //	chSysLock();
 //	size_t mailboxe_size = chMBGetUsedCountI(get_mailboxe_adr());
 //	chSysUnlock();
 //	//chprintf((BaseSequentialStream *)&SDU1, " adresse = %d; taille mailboxe = %d \n", mail_boxe_ptr, mailboxe_size);
-//
-//	msg_t message_received1;
-//	msg_t message_received2;
-//	chSysLock();
-//	chMBFetchI(get_mailboxe_adr(), &message_received1);
-//	chMBFetchI(get_mailboxe_adr(), &message_received2);
-//	chSysUnlock();
 
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
