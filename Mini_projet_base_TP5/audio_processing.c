@@ -20,7 +20,7 @@
 #define THRESHOLD           	10000 //seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
 #define COEF_CORRECTION			1
-#define NBR_VALEUR_MOYENNE		40  //affiche la valeur moyenne de l'intensité reçu sur 100 cycles
+#define NBR_VALEUR_MOYENNE		10  //affiche la valeur moyenne de l'intensité reçu sur 50 cycles
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -93,7 +93,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_value = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
+				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
 			}
 		} else {
 			compteur += 2;
@@ -194,7 +194,7 @@ void compute_motor_speed() {
 	}
 
 	uint16_t pic_detect_ = pic_detect*15.625;
-	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
+	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
 	msg_t motor_speed_left_correction = rotation_speed_left;
