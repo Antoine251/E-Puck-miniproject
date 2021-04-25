@@ -13,14 +13,26 @@
 #include <arm_math.h>
 
 #define FREQ_MAX_SPEED      	512  //8000 Hz
-#define FREQ_SPEED_NUL_MIN  	383  //5980 - 6020 Hz --> On avance tout droit sur une range de fréquence
-#define FREQ_SPEED_NUL_MAX  	385
-#define FREQ_MIN_SPEED      	256   //4000 Hz
+#define FREQ_SPEED_NUL_MIN  	382  //5979 - 6031 Hz --> On avance tout droit sur une range de fréquence
+#define FREQ_SPEED_NUL_MAX  	386
+#define FREQ_MIN_SPEED      	256    //4000 Hz
 #define FREQ_MIN_DETECT			128    //2000 Hz (limite inférieur de l'application qui émet les fréquences
-#define THRESHOLD           	10000 //seuil de détection du son
+#define THRESHOLD           	10000  //seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
 #define COEF_CORRECTION			1
-#define NBR_VALEUR_MOYENNE		10  //affiche la valeur moyenne de l'intensité reçu sur 50 cycles
+#define NBR_VALEUR_MOYENNE		10
+
+//liste des fréquences seuiles pour la détection de l'intensité
+#define FREQ_4000				256
+#define FREQ_4400				282
+#define FREQ_5000				320
+#define FREQ_5200				333
+#define FREQ_5600				358
+#define FREQ_6200				397
+#define FREQ_6600				422
+#define FREQ_7200				461
+#define FREQ_7800				499
+#define FREQ_8000				512
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -36,8 +48,12 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
-static int16_t rotation_speed_left = 0;   //coef entre 0 et 1 muiltiplié par 100 pour travailler avec des int
-static int16_t rotation_speed_right = 0;  //appliqué a la vitesse du moteur pour la rotation de l'EPUCK
+static int16_t mean_intensity = 0;
+
+static int16_t rotation_speed_left = 0;
+static int16_t rotation_speed_right = 0;
+static int16_t speed_intensity = 0;
+
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
@@ -63,7 +79,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	static uint8_t must_send = 0;
 	static int32_t somme_max_valu = 0;
 	int16_t max_valu = 0;
-	int16_t mean_value = 0;
 	static uint16_t compteurbis = 0;
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
@@ -90,10 +105,10 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			//chprintf((BaseSequentialStream *)&SDU1, "max value = %d; somme = %d \n", max_valu, somme_max_valu);
 			++compteurbis;
 			if(compteurbis == NBR_VALEUR_MOYENNE) {
-				mean_value = somme_max_valu/NBR_VALEUR_MOYENNE;
+				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_value);
+				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
 			}
 		} else {
 			compteur += 2;
@@ -193,12 +208,14 @@ void compute_motor_speed() {
 		rotation_speed_right = 0;
 	}
 
-	uint16_t pic_detect_ = pic_detect*15.625;
+	compute_speed_intensity(pic_detect);
+
+	//uint16_t pic_detect_ = pic_detect*15.625;
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
-	msg_t motor_speed_left_correction = rotation_speed_left;
-	msg_t motor_speed_right_correction = rotation_speed_right;
+	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
+	msg_t motor_speed_right_correction = speed_intensity + rotation_speed_right;
 	mailbox_t * mail_boxe_ptr = get_mailboxe_micro_adr();
 	chSysLock();
 	chMBPostI(mail_boxe_ptr, motor_speed_left_correction);
@@ -213,3 +230,85 @@ void compute_motor_speed() {
 	//left_motor_set_speed(rotation_speed_left);
 	//right_motor_set_speed(rotation_speed_right);
 }
+
+void compute_speed_intensity(uint16_t freq) {
+	int16_t thres_34 = 0;
+	int16_t thres_45 = 0;
+	int16_t thres_56 = 0;
+	int16_t thres_67 = 0;
+	int16_t thres_78 = 0;
+
+	if (freq > FREQ_4000 && freq < FREQ_4400) {
+		thres_34 = THRES_34_4044(freq*15.625);
+		thres_45 = THRES_45_4044(freq*15.625);
+		thres_56 = THRES_56_4044(freq*15.625);
+		thres_67 = THRES_67_4044(freq*15.625);
+		thres_78 = THRES_78_4044(freq*15.625);
+	} else if (freq > FREQ_4400 && freq < FREQ_5000) {
+		thres_34 = THRES_34_4450(freq*15.625);
+		thres_45 = THRES_45_4450(freq*15.625);
+		thres_56 = THRES_56_4450(freq*15.625);
+		thres_67 = THRES_67_4450(freq*15.625);
+		thres_78 = THRES_78_4450(freq*15.625);
+	} else if (freq > FREQ_5000 && freq < FREQ_5200) {
+		thres_34 = THRES_34_5052(freq*15.625);
+		thres_45 = THRES_45_5052(freq*15.625);
+		thres_56 = THRES_56_5052(freq*15.625);
+		thres_67 = THRES_67_5052(freq*15.625);
+		thres_78 = THRES_78_5052(freq*15.625);
+	} else if (freq > FREQ_5200 && freq < FREQ_5600) {
+		thres_34 = THRES_34_5256(freq*15.625);
+		thres_45 = THRES_45_5256(freq*15.625);
+		thres_56 = THRES_56_5256(freq*15.625);
+		thres_67 = THRES_67_5256(freq*15.625);
+		thres_78 = THRES_78_5256(freq*15.625);
+	} else if (freq > FREQ_5600 && freq < FREQ_6200) {
+		thres_34 = THRES_34_5662(freq*15.625);
+		thres_45 = THRES_45_5662(freq*15.625);
+		thres_56 = THRES_56_5662(freq*15.625);
+		thres_67 = THRES_67_5662(freq*15.625);
+		thres_78 = THRES_78_5662(freq*15.625);
+	} else if (freq > FREQ_6200 && freq < FREQ_6600) {
+		thres_34 = THRES_34_6266(freq*15.625);
+		thres_45 = THRES_45_6266(freq*15.625);
+		thres_56 = THRES_56_6266(freq*15.625);
+		thres_67 = THRES_67_6266(freq*15.625);
+		thres_78 = THRES_78_6266(freq*15.625);
+	} else if (freq > FREQ_6600 && freq < FREQ_7200) {
+		thres_34 = THRES_34_6672(freq*15.625);
+		thres_45 = THRES_45_6672(freq*15.625);
+		thres_56 = THRES_56_6672(freq*15.625);
+		thres_67 = THRES_67_6672(freq*15.625);
+		thres_78 = THRES_78_6672(freq*15.625);
+	} else if (freq > FREQ_7200 && freq < FREQ_7800) {
+		thres_34 = THRES_34_7278(freq*15.625);
+		thres_45 = THRES_45_7278(freq*15.625);
+		thres_56 = THRES_56_7278(freq*15.625);
+		thres_67 = THRES_67_7278(freq*15.625);
+		thres_78 = THRES_78_7278(freq*15.625);
+	} else if (freq > FREQ_7800 && freq < FREQ_8000) {
+		thres_34 = THRES_34_7880(freq*15.625);
+		thres_45 = THRES_45_7880(freq*15.625);
+		thres_56 = THRES_56_7880(freq*15.625);
+		thres_67 = THRES_67_7880(freq*15.625);
+		thres_78 = THRES_78_7880(freq*15.625);
+	}
+
+	if (mean_intensity > INTENSITY_MIN && mean_intensity < thres_34) {
+		speed_intensity = SPEED_MARCHE_ARRIERE;
+	} else if (mean_intensity > thres_34 && mean_intensity < thres_45) {
+		speed_intensity = VITESSE_NUL;
+	} else if (mean_intensity > thres_45 && mean_intensity < thres_56) {
+		speed_intensity = SPEED_1;
+	} else if (mean_intensity > thres_56 && mean_intensity < thres_67) {
+		speed_intensity = SPEED_2;
+	} else if (mean_intensity > thres_67 && mean_intensity < thres_78) {
+		speed_intensity = SPEED_3;
+	} else if (mean_intensity > thres_78) {
+		speed_intensity = SPEED_4;
+	}
+}
+
+
+
+
