@@ -108,7 +108,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
+				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
 			}
 		} else {
 			compteur += 2;
@@ -177,10 +177,10 @@ void compute_motor_speed() {
 		}
 	}
 //		if(micLeft_output[i] > THRESHOLD) {
-//			pic_haut = i;
-//		}
-//		if(micLeft_output[i] < THRESHOLD && pic_haut) {
 //			pic_bas = i;
+//		}
+//		if(micLeft_output[i] < THRESHOLD && pic_bas) {
+//			pic_haut = i;
 //			break;
 //		}
 //	}
@@ -208,9 +208,10 @@ void compute_motor_speed() {
 		rotation_speed_right = 0;
 	}
 
+	uint16_t pic_detect_ = pic_detect*15.625;
+	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
-	//uint16_t pic_detect_ = pic_detect*15.625;
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
@@ -306,7 +307,11 @@ void compute_speed_intensity(uint16_t freq) {
 		speed_intensity = SPEED_3;
 	} else if (mean_intensity > thres_78) {
 		speed_intensity = SPEED_4;
+	} else {
+		speed_intensity = VITESSE_NUL;
 	}
+
+	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
 
 
