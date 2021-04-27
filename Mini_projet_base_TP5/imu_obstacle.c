@@ -23,24 +23,30 @@ static THD_FUNCTION(obs_thd, arg){
 	(void)arg;
 
 	int16_t z_acc = 0;
-	static uint8_t tilt_counter = 0;
-	uint8_t tilt_state = NO_BUMP;
+	uint8_t tilt_counter = 0;
+	uint8_t flat_counter = 0;
+
+
+	uint8_t tilt_state = NO_BUMP_DETECTED;
 
 	while(1){
-
-		int16_t z_acc = 0;
 
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
 
 		if(z_acc >= ACC_Z_TILT_THRESHOLD){ //une bosse est detectee
 			tilt_counter++;
+			flat_counter = 0;
 			if(tilt_counter == MAX_TILT_COUNTER){
-				tilt_counter = 0;
+				tilt_counter = MAX_TILT_COUNTER - 1;
 				tilt_state = BUMP_DETECTED;
 			}
 		}else{
+			flat_counter++;
 			tilt_counter = 0;
-			tilt_state = NO_BUMP;
+			if(flat_counter == MAX_TILT_COUNTER){
+				tilt_counter = MAX_TILT_COUNTER - 1;
+				tilt_state = NO_BUMP_DETECTED;
+			}
 		}
 
 		//envoi d'information "bosse" via mailboxe
@@ -62,6 +68,6 @@ void imu_init(void){ //ordre ?
 	imu_start();
 	chThdCreateStatic(obs_thd_wa, sizeof(obs_thd_wa), NORMALPRIO, obs_thd, NULL);
 	calibrate_acc();
-	offset_acc_z = get_acc_filtered(Z_AXIS, NBR_SAMPLE_IMU_CALIBRATION);
+	offset_acc_z = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU_CALIBRATION);
 }
 

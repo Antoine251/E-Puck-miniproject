@@ -73,7 +73,7 @@ int main(void)
     //starts the USB communication
     usb_start();
     //starts timer 12
-    timer12_start();
+    timer12_start(); //necessaire ?
     //inits the motors
     motor_start();
     //inits the imu module

@@ -9,11 +9,16 @@
 #include <capteur_proxi.h> 	//include pour avoir les #define de etat_obstacle
 #include <imu_obstacle.h>	//include pour avoir les #define de etat_penche
 
-/***************************INTERNAL FUNCTIONS************************************/
+#define ON_A_BUMP		1
+#define NOT_ON_A_BUMP	0
+#define DO_A_TURN		1
+#define DONT_DO_A_TURN	0
 
 /*********************PROTOTYPES OF INTERNAL FUNCTIONS****************************/
 void do_a_roll(void);
 /*****************END OF PROTOTYPES OF INTERNAL FUNCTIONS*************************/
+
+/***************************INTERNAL FUNCTIONS************************************/
 
 static THD_WORKING_AREA(motor_thd_wa, 256);
 static THD_FUNCTION(motor_thd, arg){
@@ -54,15 +59,15 @@ static THD_FUNCTION(motor_thd, arg){
 
     	int16_t vit_moy = rotation_speed_left/2 + rotation_speed_right/2;
 
-    	//code pour detecter une meme bosse qu'une fois
-    	uint8_t sur_une_bosse = 0;				//faire define avec 0,1
-    	uint8_t faire_un_tour = 0;
+    	//code pour detecter la fin d'une bosse
+    	uint8_t sur_une_bosse = NOT_ON_A_BUMP;				//faire define avec 0,1
+    	uint8_t faire_un_tour = DONT_DO_A_TURN;
     	if(etat_penche == BUMP_DETECTED && sur_une_bosse == 0){
-    		sur_une_bosse = 1;
+    		sur_une_bosse = ON_A_BUMP;
     	}
-    	if(etat_penche == NO_BUMP && sur_une_bosse == 1){
-    		faire_un_tour = 1;
-    		sur_une_bosse = 0;
+    	if(etat_penche == NO_BUMP_DETECTED && sur_une_bosse == 1){
+    		faire_un_tour = DO_A_TURN;
+    		sur_une_bosse = NOT_ON_A_BUMP;
     	}
 
     	//obstacle a la prio sur bosse, donc tant qu'on a un obstacle, le robot ne fais pas de tour sur luimeme
@@ -70,11 +75,11 @@ static THD_FUNCTION(motor_thd, arg){
 
     	switch(etat_obstacle){
     	case PAS_OBSTACLE : 	//avance suivant les instruction de l'utilisateur, SAUF si il y'a une bosse
-    		if(faire_un_tour == 0){
+    		if(faire_un_tour == DONT_DO_A_TURN){
     			left_motor_set_speed(rotation_speed_left);
     			right_motor_set_speed(rotation_speed_right);
     		}else{
-    			faire_un_tour = 0;
+    			faire_un_tour = DONT_DO_A_TURN;
     			do_a_roll(); // comment bloquer le reste ? et quoi bloquer ?
     			//soit bloquer tout et faire un tour
     			//soit variable static qui compte l'anlgle fais, et on update a chaque fois quon rentre dans le thread -> garde le controle des obstacle
