@@ -15,6 +15,7 @@
 #include <communications.h>
 #include <arm_math.h>
 #include <motor.h>
+#include <imu_obstacle.h>
 
 #include <capteur_proxi.h> //decarer la thread dans le .h ??
 //#include "proximity.h"
@@ -25,7 +26,7 @@
 //uncomment to use double buffering to send the FFT to the computer
 #define DOUBLE_BUFFERING
 
-messagebus_t bus; 			//defini car utilisation de bus pour proximity.c
+messagebus_t bus; 			//defini car utilisation de bus pour proximity.c //et imu ??
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
@@ -65,7 +66,7 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    messagebus_init(&bus, &bus_lock, &bus_condvar); //car bus utilisé dans proximity
+    messagebus_init(&bus, &bus_lock, &bus_condvar); //car bus utilisé dans proximity // et imu ??
 
     //starts the serial communication
     serial_start();
@@ -75,6 +76,8 @@ int main(void)
     timer12_start();
     //inits the motors
     motor_start();
+    //inits the imu module
+    imu_init();
 
     //inits and calibrates the thread to process sensors //ordre important ?
     capteur_proxi_start();

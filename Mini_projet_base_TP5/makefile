@@ -16,6 +16,7 @@ CSRC += ./main.c \
 		./mailboxe.c \
 		./capteur_proxi.c \
 		./motor.c \
+		./imu_obstacle.c \
 
 #Header folders to include
 INCDIR += 
