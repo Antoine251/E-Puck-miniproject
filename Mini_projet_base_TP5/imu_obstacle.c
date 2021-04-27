@@ -16,6 +16,8 @@
 
 static int16_t offset_acc_z = 0;
 
+/***************************INTERNAL FUNCTIONS************************************/
+
 static THD_WORKING_AREA(obs_thd_wa, 256); //256 ou moins ?
 static THD_FUNCTION(obs_thd, arg){
 
@@ -26,14 +28,15 @@ static THD_FUNCTION(obs_thd, arg){
 	uint8_t tilt_counter = 0;
 	uint8_t flat_counter = 0;
 
-
 	uint8_t tilt_state = NO_BUMP_DETECTED;
 
 	while(1){
 
+		//recupere l'acceleration en z, vaut 0 si au plat
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
 
-		if(z_acc >= ACC_Z_TILT_THRESHOLD){ //une bosse est detectee
+		//detection de bosse/plat (3 valeurs consecutives necessaires)
+		if(z_acc >= ACC_Z_TILT_THRESHOLD){
 			tilt_counter++;
 			flat_counter = 0;
 			if(tilt_counter == MAX_TILT_COUNTER){
@@ -50,9 +53,9 @@ static THD_FUNCTION(obs_thd, arg){
 		}
 
 		//envoi d'information "bosse" via mailboxe
-		msg_t etat_penche = tilt_state;
+		msg_t tilt_state_msg = tilt_state;
 		chSysLock();
-		chMBPostI(get_mailboxe_imu_adr(), etat_penche);
+		chMBPostI(get_mailboxe_imu_adr(), tilt_state_msg);
 		chSysUnlock();
 
 		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
@@ -60,14 +63,19 @@ static THD_FUNCTION(obs_thd, arg){
 		chThdSleepMilliseconds(50); //20x par seconde
 	}
 
+/*************************END INTERNAL FUNCTIONS**********************************/
 
+
+/****************************PUBLIC FUNCTIONS*************************************/
 
 }
 
 void imu_init(void){ //ordre ?
 	imu_start();
-	chThdCreateStatic(obs_thd_wa, sizeof(obs_thd_wa), NORMALPRIO, obs_thd, NULL);
 	calibrate_acc();
 	offset_acc_z = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU_CALIBRATION);
+	chThdCreateStatic(obs_thd_wa, sizeof(obs_thd_wa), NORMALPRIO, obs_thd, NULL);
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
 

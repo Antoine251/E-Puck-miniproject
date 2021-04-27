@@ -20,11 +20,13 @@ void do_a_roll(void);
 
 /***************************INTERNAL FUNCTIONS************************************/
 
-static THD_WORKING_AREA(motor_thd_wa, 256);
+static THD_WORKING_AREA(motor_thd_wa, 256); // /!\ longue tread, risque de depasser le stack attribue
 static THD_FUNCTION(motor_thd, arg){
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
+
+    //mettre toute les decl en dehors du while ??
 
     while(1) {
     	//reçoit les informations de audio processing
@@ -60,12 +62,12 @@ static THD_FUNCTION(motor_thd, arg){
     	int16_t vit_moy = rotation_speed_left/2 + rotation_speed_right/2;
 
     	//code pour detecter la fin d'une bosse
-    	uint8_t sur_une_bosse = NOT_ON_A_BUMP;				//faire define avec 0,1
+    	uint8_t sur_une_bosse = NOT_ON_A_BUMP;
     	uint8_t faire_un_tour = DONT_DO_A_TURN;
-    	if(etat_penche == BUMP_DETECTED && sur_une_bosse == 0){
+    	if(etat_penche == BUMP_DETECTED && sur_une_bosse == NOT_ON_A_BUMP){
     		sur_une_bosse = ON_A_BUMP;
     	}
-    	if(etat_penche == NO_BUMP_DETECTED && sur_une_bosse == 1){
+    	if(etat_penche == NO_BUMP_DETECTED && sur_une_bosse == ON_A_BUMP){
     		faire_un_tour = DO_A_TURN;
     		sur_une_bosse = NOT_ON_A_BUMP;
     	}
@@ -109,6 +111,8 @@ static THD_FUNCTION(motor_thd, arg){
 
 void do_a_roll(void){
 	//chprintf((BaseSequentialStream *)&SDU1, "je fais un tour \n");
+	//chSysLock();
+	//chSysUnlock();
 }
 
 /*************************END INTERNAL FUNCTIONS**********************************/
