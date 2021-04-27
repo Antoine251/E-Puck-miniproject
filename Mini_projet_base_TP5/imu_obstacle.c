@@ -4,9 +4,15 @@
 #include <chprintf.h>
 #include <sensors/imu.h>
 
-#define Z_AXIS 2
-#define NUMBER_SAMPLE_IMU 			100
-#define NBR_SAMPLE_IMU_CALIBRATION 	255
+#include <mailboxe.h>
+#include <imu_obstacle.h>
+
+#define Z_AXIS 							2
+#define NUMBER_SAMPLE_IMU 				100
+#define NUMBER_SAMPLE_IMU_CALIBRATION 	255
+#define ACC_Z_TILT_THRESHOLD			30
+#define MAX_TILT_COUNTER				3
+
 
 static int16_t offset_acc_z = 0;
 
@@ -16,15 +22,36 @@ static THD_FUNCTION(obs_thd, arg){
 	chRegSetThreadName(__FUNCTION__);
 	(void)arg;
 
+	int16_t z_acc = 0;
+	static uint8_t tilt_counter = 0;
+	uint8_t tilt_state = NO_BUMP;
+
 	while(1){
 
-		int16_t z_acc = 0;
+
 
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
 
-		chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
+		if(z_acc >= ACC_Z_TILT_THRESHOLD){ //une bosse est detectee
+			tilt_counter++;
+			if(tilt_counter == MAX_TILT_COUNTER){
+				tilt_counter = 0;
+				tilt_state = BUMP_DETECTED;
+			}
+		}else{
+			tilt_counter = 0;
+			tilt_state = NO_BUMP;
+		}
 
-		chThdSleepMilliseconds(100); //10x par seconde
+		//envoi d'information "bosse" via mailboxe
+		msg_t etat_penche = tilt_state;
+		chSysLock();
+		chMBPostI(get_mailboxe_imu_adr(), etat_penche);
+		chSysUnlock();
+
+		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
+
+		chThdSleepMilliseconds(50); //20x par seconde
 	}
 
 
@@ -35,6 +62,6 @@ void imu_init(void){ //ordre ?
 	imu_start();
 	chThdCreateStatic(obs_thd_wa, sizeof(obs_thd_wa), NORMALPRIO, obs_thd, NULL);
 	calibrate_acc();
-	offset_acc_z = get_acc_filtered(Z_AXIS, NBR_SAMPLE_IMU_CALIBRATION);
+	offset_acc_z = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU_CALIBRATION);
 }
 
