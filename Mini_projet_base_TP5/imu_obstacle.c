@@ -13,10 +13,6 @@
 #define ACC_Z_TILT_THRESHOLD			30
 #define MAX_TILT_COUNTER				3
 
-#define NO_BUMP							0
-#define BUMP_DETECTED					1
-#define BUMP_PASSED						2
-
 
 static int16_t offset_acc_z = 0;
 
@@ -27,54 +23,35 @@ static THD_FUNCTION(obs_thd, arg){
 	(void)arg;
 
 	int16_t z_acc = 0;
-	uint8_t tilt_counter = 0;
-	uint8_t flat_counter = 0;
-
+	static uint8_t tilt_counter = 0;
 	uint8_t tilt_state = NO_BUMP;
-
-	msg_t turn_state = NO_TURN_TO_DO;
-
 
 	while(1){
 
-
+		int16_t z_acc = 0;
 
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
 
-
-		//pour qu'une bosse/plat soit détecté, il faut que 3 valeurs audessus/endessous du seuil soit lues
-		if(z_acc >= ACC_Z_TILT_THRESHOLD){
-			flat_counter = 0;
+		if(z_acc >= ACC_Z_TILT_THRESHOLD){ //une bosse est detectee
 			tilt_counter++;
 			if(tilt_counter == MAX_TILT_COUNTER){
-				tilt_counter = MAX_TILT_COUNTER - 1;
+				tilt_counter = 0;
 				tilt_state = BUMP_DETECTED;
 			}
 		}else{
 			tilt_counter = 0;
-			flat_counter++;
-			if(flat_counter == MAX_TILT_COUNTER){
-				flat_counter = MAX_TILT_COUNTER - 1;
-				if(tilt_state == BUMP_DETECTED){
-					tilt_state = BUMP_PASSED;
-				}
-
-			}
-		}
-
-		if(tilt_state == BUMP_PASSED){
 			tilt_state = NO_BUMP;
-			turn_state = DO_A_TURN;
 		}
 
 		//envoi d'information "bosse" via mailboxe
+		msg_t etat_penche = tilt_state;
 		chSysLock();
-		chMBPostI(get_mailboxe_imu_adr(), turn_state);
+		chMBPostI(get_mailboxe_imu_adr(), etat_penche);
 		chSysUnlock();
 
 		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
 
-		chThdSleepMilliseconds(100); //10x par seconde /!\ doit être plus lent que la thread moteur
+		chThdSleepMilliseconds(50); //20x par seconde
 	}
 
 
@@ -85,6 +62,6 @@ void imu_init(void){ //ordre ?
 	imu_start();
 	chThdCreateStatic(obs_thd_wa, sizeof(obs_thd_wa), NORMALPRIO, obs_thd, NULL);
 	calibrate_acc();
-	offset_acc_z = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU_CALIBRATION);
+	offset_acc_z = get_acc_filtered(Z_AXIS, NBR_SAMPLE_IMU_CALIBRATION);
 }
 
