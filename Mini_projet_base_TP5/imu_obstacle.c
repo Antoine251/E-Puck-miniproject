@@ -34,6 +34,7 @@ static THD_FUNCTION(obs_thd, arg){
 
 		//recupere l'acceleration en z, vaut 0 si au plat
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
+		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
 
 		//detection de bosse/plat (3 valeurs consecutives necessaires)
 		if(z_acc >= ACC_Z_TILT_THRESHOLD){
@@ -57,8 +58,6 @@ static THD_FUNCTION(obs_thd, arg){
 		chSysLock();
 		chMBPostI(get_mailboxe_imu_adr(), tilt_state_msg);
 		chSysUnlock();
-
-		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
 
 		chThdSleepMilliseconds(50); //20x par seconde
 	}

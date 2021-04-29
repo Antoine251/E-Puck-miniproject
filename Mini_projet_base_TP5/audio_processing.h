@@ -34,55 +34,50 @@ void wait_send_to_computer(void);
 float* get_audio_buffer_ptr(BUFFER_NAME_t name);
 
 //Ensemble des macros pour le calcul des thresholds en fonction de l'intensité
-#define THRES_34_4044(f) 		-1.2063*f + 6267
-#define THRES_34_4450(f) 		-0.5642*f + 3442
-#define THRES_34_5052(f)		-0.7925*f + 4584
-#define THRES_34_5256(f)		-0.4463*f + 2783
-#define THRES_34_5662(f)		-0.1867*f + 1329
-#define THRES_34_6266(f)		-0.1088*f + 846
-#define THRES_34_6672(f)		-0.0500*f + 459
-#define THRES_34_7278(f)		-0.0733*f + 627
-#define THRES_34_7880(f)		0.1250*f - 921
+#define THRES_34_4044(f) 		-1.1884*f + 6418
+#define THRES_34_4450(f) 		-0.6023*f + 3726
+#define THRES_34_5052(f)		-0.8087*f + 4790
+#define THRES_34_5256(f)		-0.4474*f + 2856
+#define THRES_34_5662(f)		-0.1839*f + 1341
+#define THRES_34_6266(f)		-0.1051*f + 840
+#define THRES_34_6672(f)		-0.0498*f + 466
+#define THRES_34_7278(f)		-0.0723*f + 631
 
-#define THRES_45_4044(f) 		-1.5762*f + 8214
-#define THRES_45_4450(f) 		-0.7467*f + 4564
-#define THRES_45_5052(f)		-1.0425*f + 6043
-#define THRES_45_5256(f)		-0.6238*f + 3865
-#define THRES_45_5662(f)		-0.2392*f + 1712
-#define THRES_45_6266(f)		-0.1550*f + 1190
-#define THRES_45_6672(f)		-0.0592*f + 557
-#define THRES_45_7278(f)		-0.1050*f + 887
-#define THRES_45_7880(f)		0.1800*f - 1335
+#define THRES_45_4044(f) 		-1.5530*f + 8411
+#define THRES_45_4450(f) 		-0.7972*f + 4940
+#define THRES_45_5052(f)		-1.0638*f + 6314
+#define THRES_45_5256(f)		-0.6253*f + 3968
+#define THRES_45_5662(f)		-0.2356*f + 1727
+#define THRES_45_6266(f)		-0.1498*f + 1181
+#define THRES_45_6672(f)		-0.0590*f + 566
+#define THRES_45_7278(f)		-0.1035*f + 894
 
-#define THRES_56_4044(f) 		-2.0475*f + 10714
-#define THRES_56_4450(f) 		-0.9925*f + 6072
-#define THRES_56_5052(f)		-1.3775*f + 7997
-#define THRES_56_5256(f)		-0.8450*f + 5228
-#define THRES_56_5662(f)		-0.3217*f + 2298
-#define THRES_56_6266(f)		-0.2100*f + 1605
-#define THRES_56_6672(f)		-0.0725*f + 698
-#define THRES_56_7278(f)		-0.1458*f + 1226
-#define THRES_56_7880(f)		0.2525*f - 1881
+#define THRES_56_4044(f) 		-2.0172*f + 10971
+#define THRES_56_4450(f) 		-1.0596*f + 6572
+#define THRES_56_5052(f)		-1.4056*f + 8356
+#define THRES_56_5256(f)		-0.8471*f + 5367
+#define THRES_56_5662(f)		-0.3169*f + 2319
+#define THRES_56_6266(f)		-0.2029*f + 1594
+#define THRES_56_6672(f)		-0.0723*f + 709
+#define THRES_56_7278(f)		-0.1437*f + 1236
 
-#define THRES_67_4044(f) 		-2.6725*f + 14028
-#define THRES_67_4450(f) 		-1.3092*f + 8029
-#define THRES_67_5052(f)		-1.8550*f + 10758
-#define THRES_67_5256(f)		-0.1150*f + 6910
-#define THRES_67_5662(f)		-0.4383*f + 3121
-#define THRES_67_6266(f)		-0.2825*f + 2155
-#define THRES_67_6672(f)		-0.1000*f + 950
-#define THRES_67_7278(f)		-0.1908*f + 1604
-#define THRES_67_7880(f)		0.37*f - 2770
+#define THRES_67_4044(f) 		-2.6330*f + 14362
+#define THRES_67_4450(f) 		-1.3977*f + 8689
+#define THRES_67_5052(f)		-1.8929*f + 11241
+#define THRES_67_5256(f)		-0.1178*f + 7094
+#define THRES_67_5662(f)		-0.4319*f + 3150
+#define THRES_67_6266(f)		-0.2730*f + 2139
+#define THRES_67_6672(f)		-0.0997*f + 966
+#define THRES_67_7278(f)		-0.1880*f + 1617
 
-#define THRES_78_4044(f) 		-3.5475*f + 18640
-#define THRES_78_4450(f) 		-1.7600*f + 10775
-#define THRES_78_5052(f)		-2.4500*f + 14225
-#define THRES_78_5256(f)		-1.5012*f + 9291
-#define THRES_78_5662(f)		-0.5875*f + 4174
-#define THRES_78_6266(f)		-0.3625*f + 2779
-#define THRES_78_6672(f)		-0.1392*f + 1305
-#define THRES_78_7278(f)		-0.2508*f + 2109
-#define THRES_78_7880(f)		0.51*f - 3825
+#define THRES_78_4044(f) 		-3.4951*f + 19084
+#define THRES_78_4450(f) 		-1.8790*f + 11661
+#define THRES_78_5052(f)		-2.5000*f + 14863
+#define THRES_78_5256(f)		-1.5050*f + 9538
+#define THRES_78_5662(f)		-0.5788*f + 4213
+#define THRES_78_6266(f)		-0.3502*f + 2759
+#define THRES_78_6672(f)		-0.1387*f + 1326
+#define THRES_78_7278(f)		-0.2471*f + 2126
 
 #define INTENSITY_MIN 			30
 

@@ -209,7 +209,7 @@ void compute_motor_speed() {
 	}
 
 	uint16_t pic_detect_ = pic_detect*15.625;
-	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
+	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
@@ -287,12 +287,6 @@ void compute_speed_intensity(uint16_t freq) {
 		thres_56 = THRES_56_7278(freq*15.625);
 		thres_67 = THRES_67_7278(freq*15.625);
 		thres_78 = THRES_78_7278(freq*15.625);
-	} else if (freq > FREQ_7800 && freq < FREQ_8000) {
-		thres_34 = THRES_34_7880(freq*15.625);
-		thres_45 = THRES_45_7880(freq*15.625);
-		thres_56 = THRES_56_7880(freq*15.625);
-		thres_67 = THRES_67_7880(freq*15.625);
-		thres_78 = THRES_78_7880(freq*15.625);
 	}
 
 	if (mean_intensity > INTENSITY_MIN && mean_intensity < thres_34) {
@@ -311,7 +305,7 @@ void compute_speed_intensity(uint16_t freq) {
 		speed_intensity = VITESSE_NUL;
 	}
 
-	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
 
 
