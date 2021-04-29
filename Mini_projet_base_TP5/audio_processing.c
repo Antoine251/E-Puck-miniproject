@@ -115,15 +115,16 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	}
 
 	// activate the semaphore
-	if (sem_ready && (must_send == 8)) {
+	if (sem_ready) { 		//&& (must_send == 8)) {
 		chBSemSignal(&sendToComputer_sem);
-		must_send = 0;
+		//must_send = 0;
 		compute_motor_speed();
-	} else {
-		if (sem_ready) {
-			must_send++;
-		}
 	}
+//	} else {
+//		if (sem_ready) {
+//			must_send++;
+//		}
+//	}
 	sem_ready = 0;
 }
 
@@ -307,7 +308,5 @@ void compute_speed_intensity(uint16_t freq) {
 
 	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
-
-
 
 
