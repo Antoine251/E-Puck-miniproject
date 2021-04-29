@@ -23,16 +23,15 @@
 #define NBR_VALEUR_MOYENNE		10
 
 //liste des fréquences seuiles pour la détection de l'intensité
-#define FREQ_4000				256
-#define FREQ_4400				282
-#define FREQ_5000				320
-#define FREQ_5200				333
-#define FREQ_5600				358
-#define FREQ_6200				397
-#define FREQ_6600				422
-#define FREQ_7200				461
-#define FREQ_7800				499
-#define FREQ_8000				512
+#define FREQ_4000				268
+#define FREQ_4400				294
+#define FREQ_5000				330
+#define FREQ_5200				342
+#define FREQ_5600				368
+#define FREQ_6200				407
+#define FREQ_6600				433
+#define FREQ_7200				472
+#define FREQ_7800				511
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -301,8 +300,9 @@ void compute_speed_intensity(uint16_t freq) {
 		speed_intensity = SPEED_3;
 	} else if (mean_intensity > thres_78) {
 		speed_intensity = SPEED_4;
-	} else {
-		speed_intensity = VITESSE_NUL;
+	}
+	if (thres_78 == 0) {
+		speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
 	}
 
 	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);

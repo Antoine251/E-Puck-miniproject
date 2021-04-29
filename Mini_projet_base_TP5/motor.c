@@ -78,7 +78,7 @@ static THD_FUNCTION(motor_thd, arg){
     	}
 
     	//obstacle a la prio sur bosse, donc tant qu'on a un obstacle, le robot ne fais pas de tour sur luimeme
-    	//mais une fois le tour lancé, il a la prio sur tout
+    	//mais une fois le tour lancï¿½, il a la prio sur tout
 
     	static int turn_counter = 0;
 
@@ -107,9 +107,9 @@ static THD_FUNCTION(motor_thd, arg){
     	}else{
     		//en train de faire le tour
     		left_motor_set_speed(TURN_SPEED);
-    		right_motor_set_speed(TURN_SPEED);
+    		right_motor_set_speed(-TURN_SPEED);
     		turn_counter++;
-    		if(turn_counter == MAX_COUNTER_STEP){
+    		if(turn_counter == MAX_COUNTER_STEP-1){
     			turn_counter = 0;
     			faire_un_tour = DONT_DO_A_TURN;
 
