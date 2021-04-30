@@ -22,7 +22,7 @@
 #define THRESHOLD           	10000  //seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
 #define COEF_CORRECTION			1
-#define NBR_VALEUR_MOYENNE		10
+#define NBR_VALEUR_MOYENNE		1
 
 //liste des fréquences seuiles pour la détection de l'intensité
 #define FREQ_4000				268
@@ -54,6 +54,8 @@ static int16_t mean_intensity = 0;
 static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
+static uint16_t pic_detect = 0;
+
 
 //proto************************
 void do_band_filter(float* mic_complex_input, float32_t * magn_buffer);
@@ -92,34 +94,31 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		micBack_cmplx_input[compteur+1] = 0;
 		micFront_cmplx_input[compteur] = data[i+3];
 		micFront_cmplx_input[compteur+1] = 0;
-		if (max_valu < data[i+1]) {
-			max_valu = data[i+1];
-		}
 
 		if (compteur == 2 * FFT_SIZE) {
+
+//			chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
+//			for (uint16_t j = 0; j < 2*FFT_SIZE; j += 2) {
+//				int32_t valeur = micLeft_cmplx_input[j];
+//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+//			}
+//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
 			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 
-			chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
-			for (uint16_t j = 0; j <= 512; j += 1) {
-				int16_t valeur = micLeft_output[j];
-				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-			}
-			chprintf((BaseSequentialStream *)&SDU1, "] \n");
-
 			do_band_filter(micLeft_cmplx_input, micLeft_output);
-			//arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 
-			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
-			for (uint16_t j = 0; j <= 512; j += 1) {
-				int16_t valeur = micLeft_output[j];
-				//chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-			}
-			chprintf((BaseSequentialStream *)&SDU1, "] \n");
-
+			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			//FFT reverse
-			//doFFT_inverse_optimized(FFT_SIZE, micLeft_cmplx_input);
+			doFFT_inverse_optimized(FFT_SIZE, micLeft_cmplx_input);
+
+//			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
+//			for (uint16_t j = 0; j < 2*FFT_SIZE; j += 2) {
+//				int32_t valeur = micLeft_cmplx_input[j];
+//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+//			}
+//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
 			compteur = 0;
 			sem_ready = 1;
@@ -131,7 +130,13 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 //			}
 //			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
+
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
+			for(uint16_t n = 0; n < 2*FFT_SIZE; n+=2) {
+				if (max_valu < micLeft_cmplx_input[n]) {
+					max_valu = micLeft_cmplx_input[n];
+				}
+			}
 			somme_max_valu += max_valu;
 			//chprintf((BaseSequentialStream *)&SDU1, "max value = %d; somme = %d \n", max_valu, somme_max_valu);
 			++compteurbis;
@@ -139,7 +144,9 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
+				chprintf((BaseSequentialStream *)&SDU1, "  					mean valu = %d \n", mean_intensity);
+				uint16_t pic_detect_ = pic_detect*15.625;
+				chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 			}
 		} else {
 			compteur += 2;
@@ -200,14 +207,14 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 void compute_motor_speed() {
 	//uint16_t pic_haut = 0;
 	//uint16_t pic_bas = 0;
-	uint16_t pic_detect = 0;
-	uint16_t max_value = 0;
-	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
-		if(micLeft_output[i] > max_value && micLeft_output[i] > THRESHOLD) {
-			max_value = micLeft_output[i];
-			pic_detect = i;
-		}
-	}
+//	uint16_t pic_detect = 0;
+//	uint16_t max_value = 0;
+//	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
+//		if(micLeft_output[i] > max_value && micLeft_output[i] > THRESHOLD) {
+//			max_value = micLeft_output[i];
+//			pic_detect = i;
+//		}
+//	}
 //		if(micLeft_output[i] > THRESHOLD) {
 //			pic_bas = i;
 //		}
@@ -240,8 +247,8 @@ void compute_motor_speed() {
 		rotation_speed_right = 0;
 	}
 
-	uint16_t pic_detect_ = pic_detect*15.625;
-	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
+//	uint16_t pic_detect_ = pic_detect*15.625;
+//	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
@@ -338,22 +345,22 @@ void compute_speed_intensity(uint16_t freq) {
 		speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
 	}
 
-	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
 
-void do_band_filter(float* mic_complex_input, float32_t * magn_buffer){
-	uint16_t max_value = 0;
-	uint16_t pic_detect = 0;
+void do_band_filter(float * mic_complex_input, float32_t * magn_buffer){
+	uint32_t max_value = 0;
 	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
-		if(magn_buffer[i] > max_value && magn_buffer[i] > THRESHOLD) {
+		if(magn_buffer[i] > max_value) {
 			max_value = magn_buffer[i];
 			pic_detect = i;
 		}
 	}
 
 	//enleve les vals pas autour du pic
-	for(uint16_t  i = 0; i < FREQ_MAX_SPEED; i+=2) {
-		if(i < (pic_detect*2 - 10) || i > (pic_detect*2 + 10)){
+	for(uint16_t  i = 0; i < 2*FFT_SIZE; i+=2) {
+		//if(i < (pic_detect*2 - 1) || i > (pic_detect*2 + 1)){
+		if(i != pic_detect*2) {
 			mic_complex_input[i] = 0;
 			mic_complex_input[i+1] = 0;
 		}
