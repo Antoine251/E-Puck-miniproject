@@ -75,7 +75,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
-	static uint8_t must_send = 0;
 	static int32_t somme_max_valu = 0;
 	int16_t max_valu = 0;
 	static uint16_t compteurbis = 0;
@@ -95,6 +94,11 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 		if (compteur == 2 * FFT_SIZE) {
 			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
+			for (uint16_t i = 0; i == 1024; i += 1) {
+				chprintf((BaseSequentialStream *)&SDU1, "valeur en entrée : \n [");
+				chprintf((BaseSequentialStream *)&SDU1, " %d,", micLeft_cmplx_input[i]);
+				chprintf((BaseSequentialStream *)&SDU1, "] \n");
+			}
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			compteur = 0;
 			sem_ready = 1;
@@ -208,7 +212,7 @@ void compute_motor_speed() {
 		rotation_speed_right = 0;
 	}
 
-	uint16_t pic_detect_ = pic_detect*15.625;
+	//uint16_t pic_detect_ = pic_detect*15.625;
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
