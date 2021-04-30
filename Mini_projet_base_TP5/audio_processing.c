@@ -93,12 +93,14 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		}
 
 		if (compteur == 2 * FFT_SIZE) {
-			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
-			for (uint16_t i = 0; i == 1024; i += 1) {
-				chprintf((BaseSequentialStream *)&SDU1, "valeur en entrée : \n [");
-				chprintf((BaseSequentialStream *)&SDU1, " %d,", micLeft_cmplx_input[i]);
-				chprintf((BaseSequentialStream *)&SDU1, "] \n");
+			chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
+			for (uint16_t j = 0; j <= 1024; j += 2) {
+				int16_t valeur = micLeft_cmplx_input[j];
+				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
 			}
+			chprintf((BaseSequentialStream *)&SDU1, "] \n");
+
+			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			compteur = 0;
 			sem_ready = 1;
@@ -113,6 +115,15 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				somme_max_valu = 0;
 				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
 			}
+
+			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
+			for (uint16_t j = 0; j <= 1024; j += 2) {
+				int16_t valeur = micLeft_cmplx_input[j];								//A decale !
+				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+			}
+			chprintf((BaseSequentialStream *)&SDU1, "] \n");
+
+
 		} else {
 			compteur += 2;
 		}
@@ -310,7 +321,7 @@ void compute_speed_intensity(uint16_t freq) {
 		speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
 	}
 
-	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
 
 

@@ -87,8 +87,6 @@ static THD_FUNCTION(motor_thd, arg){
 			case PAS_OBSTACLE : 	//avance suivant les instruction de l'utilisateur
 //					left_motor_set_speed(rotation_speed_left);
 //					right_motor_set_speed(rotation_speed_right);
-					left_motor_set_speed(300);
-				    right_motor_set_speed(300);
 				break;
 
 			case OBSTACLE_AVANT : 	//autorise que la rotation sur place
