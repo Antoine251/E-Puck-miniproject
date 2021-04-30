@@ -11,6 +11,7 @@
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
+#include <arm_const_structs.h>
 
 #define FREQ_MAX_SPEED      	512  //8000 Hz
 #define FREQ_SPEED_NUL_MIN  	382  //5979 - 6031 Hz --> On avance tout droit sur une range de fréquence
@@ -53,6 +54,8 @@ static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
 
+//proto************************
+void do_band_filter(float* mic_complex_input, float32_t * magn_buffer);
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
@@ -104,6 +107,9 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 			compteur = 0;
 			sem_ready = 1;
+
+			//ici
+			do_band_filter(micLeft_cmplx_input, micLeft_output);
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			somme_max_valu += max_valu;
@@ -322,6 +328,33 @@ void compute_speed_intensity(uint16_t freq) {
 	}
 
 	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+}
+
+void do_band_filter(float* mic_complex_input, float32_t * magn_buffer){
+	uint16_t max_value = 0;
+	uint16_t pic_detect = 0;
+	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
+		if(magn_buffer[i] > max_value && magn_buffer[i] > THRESHOLD) {
+			max_value = magn_buffer[i];
+			pic_detect = i;
+		}
+	}
+
+
+
+	//enleve les vals pas autour du pic
+	for(uint16_t  i = 0; i < FREQ_MAX_SPEED; i+=2) {
+		if(i < (pic_detect*2 - 10) || i > (pic_detect*2 + 10)){
+			mic_complex_input[i] = 0;
+			mic_complex_input[FFT_SIZE - i] = 0;
+		}
+	}
+
+	//FFT reverse
+	arm_cfft_f32(&arm_cfft_sR_f32_len1024, mic_complex_input, 1, 1);
+
+
+	//
 }
 
 

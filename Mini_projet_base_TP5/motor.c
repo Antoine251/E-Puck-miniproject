@@ -60,10 +60,11 @@ static THD_FUNCTION(motor_thd, arg){
 
     	int16_t rotation_speed_right = message_received_motor_right;
     	int16_t rotation_speed_left = message_received_motor_left;
+    	int16_t vit_moy = rotation_speed_left/2 + rotation_speed_right/2;
+
     	uint8_t etat_obstacle = message_received_proximity;
     	uint8_t etat_penche = message_received_imu;
 
-    	int16_t vit_moy = rotation_speed_left/2 + rotation_speed_right/2;
 
     	//code pour detecter la fin d'une bosse
     	static uint8_t sur_une_bosse = NOT_ON_A_BUMP;
