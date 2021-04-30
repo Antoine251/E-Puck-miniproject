@@ -8,6 +8,7 @@ typedef struct complex_float{
 }complex_float;
 
 void doFFT_optimized(uint16_t size, float* complex_buffer);
+void doFFT_inverse_optimized(uint16_t size, float* complex_buffer);
 
 void doFFT_c(uint16_t size, complex_float* complex_buffer);
 

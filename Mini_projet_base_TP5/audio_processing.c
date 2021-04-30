@@ -11,7 +11,8 @@
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
-#include <arm_const_structs.h>
+
+//#include <arm_const_structs.h>
 
 #define FREQ_MAX_SPEED      	512  //8000 Hz
 #define FREQ_SPEED_NUL_MIN  	382  //5979 - 6031 Hz --> On avance tout droit sur une range de fréquence
@@ -96,20 +97,39 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		}
 
 		if (compteur == 2 * FFT_SIZE) {
+
+			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
+			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+
 			chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
-			for (uint16_t j = 0; j <= 1024; j += 2) {
-				int16_t valeur = micLeft_cmplx_input[j];
+			for (uint16_t j = 0; j <= 512; j += 1) {
+				int16_t valeur = micLeft_output[j];
 				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
 			}
 			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
-			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
-			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+			do_band_filter(micLeft_cmplx_input, micLeft_output);
+			//arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+
+			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
+			for (uint16_t j = 0; j <= 512; j += 1) {
+				int16_t valeur = micLeft_output[j];
+				//chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+			}
+			chprintf((BaseSequentialStream *)&SDU1, "] \n");
+
+			//FFT reverse
+			//doFFT_inverse_optimized(FFT_SIZE, micLeft_cmplx_input);
+
 			compteur = 0;
 			sem_ready = 1;
 
-			//ici
-			do_band_filter(micLeft_cmplx_input, micLeft_output);
+//			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
+//			for (uint16_t j = 0; j <= 1024; j += 1) {
+//				int16_t valeur = micLeft_cmplx_input[j];								//A decale !
+//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+//			}
+//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			somme_max_valu += max_valu;
@@ -121,15 +141,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				somme_max_valu = 0;
 				//chprintf((BaseSequentialStream *)&SDU1, "  mean valu = %d \n", mean_intensity);
 			}
-
-			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
-			for (uint16_t j = 0; j <= 1024; j += 2) {
-				int16_t valeur = micLeft_cmplx_input[j];								//A decale !
-				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-			}
-			chprintf((BaseSequentialStream *)&SDU1, "] \n");
-
-
 		} else {
 			compteur += 2;
 		}
@@ -229,8 +240,8 @@ void compute_motor_speed() {
 		rotation_speed_right = 0;
 	}
 
-	//uint16_t pic_detect_ = pic_detect*15.625;
-	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
+	uint16_t pic_detect_ = pic_detect*15.625;
+	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
@@ -340,21 +351,13 @@ void do_band_filter(float* mic_complex_input, float32_t * magn_buffer){
 		}
 	}
 
-
-
 	//enleve les vals pas autour du pic
 	for(uint16_t  i = 0; i < FREQ_MAX_SPEED; i+=2) {
 		if(i < (pic_detect*2 - 10) || i > (pic_detect*2 + 10)){
 			mic_complex_input[i] = 0;
-			mic_complex_input[FFT_SIZE - i] = 0;
+			mic_complex_input[i+1] = 0;
 		}
 	}
-
-	//FFT reverse
-	arm_cfft_f32(&arm_cfft_sR_f32_len1024, mic_complex_input, 1, 1);
-
-
-	//
 }
 
 
