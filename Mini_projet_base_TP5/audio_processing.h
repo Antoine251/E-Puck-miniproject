@@ -34,59 +34,39 @@ void wait_send_to_computer(void);
 float* get_audio_buffer_ptr(BUFFER_NAME_t name);
 
 //Ensemble des macros pour le calcul des thresholds en fonction de l'intensité
-#define THRES_34_4044(f) 		-1.1884*f + 6418
-#define THRES_34_4450(f) 		-0.6023*f + 3726
-#define THRES_34_5052(f)		-0.8087*f + 4790
-#define THRES_34_5256(f)		-0.4474*f + 2856
-#define THRES_34_5662(f)		-0.1839*f + 1341
-#define THRES_34_6266(f)		-0.1051*f + 840
-#define THRES_34_6672(f)		-0.0498*f + 466
-#define THRES_34_7278(f)		-0.0723*f + 631
+#define THRES_24_3537(f)     0.1631*f - 91
+#define THRES_24_3745(f)     -0.4361*f + 2165
+#define THRES_24_4548(f)     0.1458*f - 454
+#define THRES_24_4854(f)     -0.2644*f + 1520
+#define THRES_24_5459(f)     0.0853*f - 375
+#define THRES_24_5962(f)     -0.0946*f + 701
+#define THRES_24_6267(f)     0.1149*f - 618
+#define THRES_24_6770(f)     -0.2204*f + 1635
 
-#define THRES_45_4044(f) 		-1.5530*f + 8411
-#define THRES_45_4450(f) 		-0.7972*f + 4940
-#define THRES_45_5052(f)		-1.0638*f + 6314
-#define THRES_45_5256(f)		-0.6253*f + 3968
-#define THRES_45_5662(f)		-0.2356*f + 1727
-#define THRES_45_6266(f)		-0.1498*f + 1181
-#define THRES_45_6672(f)		-0.0590*f + 566
-#define THRES_45_7278(f)		-0.1035*f + 894
+#define THRES_46_3537(f)     0.3476*f - 366
+#define THRES_46_3745(f)     -0.7884*f + 3911
+#define THRES_46_4548(f)     0.2628*f - 820
+#define THRES_46_4854(f)     -0.4713*f + 2713
+#define THRES_46_5459(f)     0.1563*f - 689
+#define THRES_46_5962(f)     -0.1843*f + 1349
+#define THRES_46_6267(f)     0.2085*f - 1124
+#define THRES_46_6770(f)     -0.3882*f + 2884
 
-#define THRES_56_4044(f) 		-2.0172*f + 10971
-#define THRES_56_4450(f) 		-1.0596*f + 6572
-#define THRES_56_5052(f)		-1.4056*f + 8356
-#define THRES_56_5256(f)		-0.8471*f + 5367
-#define THRES_56_5662(f)		-0.3169*f + 2319
-#define THRES_56_6266(f)		-0.2029*f + 1594
-#define THRES_56_6672(f)		-0.0723*f + 709
-#define THRES_56_7278(f)		-0.1437*f + 1236
+#define THRES_68_3537(f)     0.5348*f - 337
+#define THRES_68_3745(f)     -1.3898*f + 6909
+#define THRES_68_4548(f)     0.4728*f - 1472
+#define THRES_68_4854(f)     -0.8563*f + 4923
+#define THRES_68_5459(f)     0.2931*f - 1308
+#define THRES_68_5962(f)     -0.3205*f + 2364
+#define THRES_68_6267(f)     0.3329*f - 1750
+#define THRES_68_6770(f)     -0.7173*f + 5305
 
-#define THRES_67_4044(f) 		-2.6330*f + 14362
-#define THRES_67_4450(f) 		-1.3977*f + 8689
-#define THRES_67_5052(f)		-1.8929*f + 11241
-#define THRES_67_5256(f)		-0.1178*f + 7094
-#define THRES_67_5662(f)		-0.4319*f + 3150
-#define THRES_67_6266(f)		-0.2730*f + 2139
-#define THRES_67_6672(f)		-0.0997*f + 966
-#define THRES_67_7278(f)		-0.1880*f + 1617
-
-#define THRES_78_4044(f) 		-3.4951*f + 19084
-#define THRES_78_4450(f) 		-1.8790*f + 11661
-#define THRES_78_5052(f)		-2.5000*f + 14863
-#define THRES_78_5256(f)		-1.5050*f + 9538
-#define THRES_78_5662(f)		-0.5788*f + 4213
-#define THRES_78_6266(f)		-0.3502*f + 2759
-#define THRES_78_6672(f)		-0.1387*f + 1326
-#define THRES_78_7278(f)		-0.2471*f + 2126
-
-#define INTENSITY_MIN 			30
+#define INTENSITY_MIN 			50
 
 // Vitesse du robot pour les différents niveaux d'intensité
-#define SPEED_MARCHE_ARRIERE	-200
+#define SPEED_MARCHE_ARRIERE	-300
 #define VITESSE_NUL				0
-#define SPEED_1					200
-#define SPEED_2					400
-#define SPEED_3					600
-#define SPEED_4					800
+#define SPEED_1					300
+#define SPEED_2					600
 
 #endif /* AUDIO_PROCESSING_H */

@@ -107,8 +107,8 @@ static THD_FUNCTION(motor_thd, arg){
 			}
     	} else {
     		//en train de faire le tour
-    		left_motor_set_speed(TURN_SPEED);
-    		right_motor_set_speed(-TURN_SPEED);
+//    		left_motor_set_speed(TURN_SPEED);
+//    		right_motor_set_speed(-TURN_SPEED);
     		turn_counter++;
     		//chprintf((BaseSequentialStream *)&SDU1, "turn counter = %d \n", turn_counter);
     		if(turn_counter >= MAX_COUNTER_STEP-1){

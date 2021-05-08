@@ -14,26 +14,27 @@
 
 //#include <arm_const_structs.h>
 
-#define FREQ_MAX_SPEED      	512  //8000 Hz
-#define FREQ_SPEED_NUL_MIN  	382  //5979 - 6031 Hz --> On avance tout droit sur une range de fréquence
-#define FREQ_SPEED_NUL_MAX  	386
-#define FREQ_MIN_SPEED      	256    //4000 Hz
-#define FREQ_MIN_DETECT			128    //2000 Hz (limite inférieur de l'application qui émet les fréquences
+#define FREQ_MAX_SPEED      	448   //7000 Hz
+#define FREQ_SPEED_NUL_MIN  	334   //5218 - 5281 Hz --> On avance tout droit sur une range de fréquence
+#define FREQ_SPEED_NUL_MAX  	338
+#define FREQ_MIN_SPEED      	224   //3500 Hz
+#define FREQ_MIN_DETECT			64    //2000 Hz
+#define FREQ_MAX_DETECT			512   //8000 Hz (max de détection de la fréquence)
 #define THRESHOLD           	10000  //seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
-#define COEF_CORRECTION			1
+#define COEF_CORRECTION			2
 #define NBR_VALEUR_MOYENNE		1
 
 //liste des fréquences seuiles pour la détection de l'intensité
-#define FREQ_4000				268
-#define FREQ_4400				294
-#define FREQ_5000				330
-#define FREQ_5200				342
-#define FREQ_5600				368
-#define FREQ_6200				407
-#define FREQ_6600				433
-#define FREQ_7200				472
-#define FREQ_7800				511
+#define FREQ_3578				229
+#define FREQ_3765				241
+#define FREQ_4500				288
+#define FREQ_4812				308
+#define FREQ_5421				347
+#define FREQ_5984				383
+#define FREQ_6296				403
+#define FREQ_6718				430
+#define FREQ_7031				450
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -55,6 +56,9 @@ static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
 static uint16_t pic_detect = 0;
+static uint16_t pic_detect_last_value = 0;
+static uint8_t change_freq = 0;                //=1 si la fréquence est en train d'être modifié
+
 
 
 //proto************************
@@ -82,13 +86,13 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
 	static int32_t somme_max_valu = 0;
-	int16_t max_valu = 0;
+	int32_t max_valu = 0;
 	static uint16_t compteurbis = 0;
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
 		micRight_cmplx_input[compteur] = data[i];
 		micRight_cmplx_input[compteur+1] = 0;
-		micLeft_cmplx_input[compteur] = data[i+1];
+		micLeft_cmplx_input[compteur] = data[i+2];    //i+1
 		micLeft_cmplx_input[compteur+1] = 0;
 		micBack_cmplx_input[compteur] = data[i+2];
 		micBack_cmplx_input[compteur+1] = 0;
@@ -97,15 +101,23 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 		if (compteur == 2 * FFT_SIZE) {
 
-//			chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
-//			for (uint16_t j = 0; j < 2*FFT_SIZE; j += 2) {
-//				int32_t valeur = micLeft_cmplx_input[j];
-//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-//			}
-//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
+
 
 			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
 			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+
+//			uint32_t valeur_max2 = 0;
+			//chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
+//			for (uint16_t j = 0; j < FFT_SIZE; j += 1) {
+//				uint32_t valeur = micLeft_output[j];
+//				//chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
+//				if (valeur > valeur_max2) {
+//					valeur_max2 = valeur;
+//					pic_detect2 = j*15.625;
+//				}
+//			}
+			//chprintf((BaseSequentialStream *)&SDU1, "] \n");
+			//chprintf((BaseSequentialStream *)&SDU1, "               pic = %d \n", pic_detect2);
 
 			do_band_filter(micLeft_cmplx_input, micLeft_output);
 
@@ -130,6 +142,14 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 //			}
 //			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
+			//Vérifie si la fréquence est en train d'être modifié de façon abrupte
+			uint16_t delta_freq = abs(pic_detect - pic_detect_last_value);
+			if(delta_freq > 2 ) {
+				change_freq = 1;
+			} else {
+				change_freq = 0;
+			}
+
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			for(uint16_t n = 0; n < 2*FFT_SIZE; n+=2) {
@@ -145,8 +165,8 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				compteurbis = 0;
 				somme_max_valu = 0;
 				chprintf((BaseSequentialStream *)&SDU1, "  					mean valu = %d \n", mean_intensity);
-				uint16_t pic_detect_ = pic_detect*15.625;
-				chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
+//				uint16_t pic_detect_ = pic_detect*15.625;
+//				chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 			}
 		} else {
 			compteur += 2;
@@ -239,9 +259,12 @@ void compute_motor_speed() {
 	} else if (pic_detect > FREQ_SPEED_NUL_MAX && pic_detect < FREQ_MAX_SPEED) {
 		rotation_speed_left = (pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
 		rotation_speed_right = -(pic_detect - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION;
-	} else if(pic_detect < FREQ_MIN_SPEED && pic_detect > FREQ_MIN_DETECT) {
+	} else if (pic_detect < FREQ_MIN_SPEED && pic_detect > FREQ_MIN_DETECT) {
 		rotation_speed_left = -MAX_CORRECTION_SPEED;
 		rotation_speed_right = MAX_CORRECTION_SPEED;
+	} else if (pic_detect > FREQ_MAX_SPEED && pic_detect < FREQ_MAX_DETECT) {
+		rotation_speed_left = MAX_CORRECTION_SPEED;
+		rotation_speed_right = -MAX_CORRECTION_SPEED;
 	} else {
 		rotation_speed_left = 0;
 		rotation_speed_right = 0;
@@ -251,7 +274,7 @@ void compute_motor_speed() {
 //	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
-	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect_, rotation_speed_left, rotation_speed_right);
+	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
 	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
@@ -272,86 +295,69 @@ void compute_motor_speed() {
 }
 
 void compute_speed_intensity(uint16_t freq) {
-	int16_t thres_34 = 0;
-	int16_t thres_45 = 0;
-	int16_t thres_56 = 0;
-	int16_t thres_67 = 0;
-	int16_t thres_78 = 0;
+	uint16_t thres_24 = 0;
+	uint16_t thres_46 = 0;
+	uint16_t thres_68 = 0;
 
-	if (freq > FREQ_4000 && freq < FREQ_4400) {
-		thres_34 = THRES_34_4044(freq*15.625);
-		thres_45 = THRES_45_4044(freq*15.625);
-		thres_56 = THRES_56_4044(freq*15.625);
-		thres_67 = THRES_67_4044(freq*15.625);
-		thres_78 = THRES_78_4044(freq*15.625);
-	} else if (freq > FREQ_4400 && freq < FREQ_5000) {
-		thres_34 = THRES_34_4450(freq*15.625);
-		thres_45 = THRES_45_4450(freq*15.625);
-		thres_56 = THRES_56_4450(freq*15.625);
-		thres_67 = THRES_67_4450(freq*15.625);
-		thres_78 = THRES_78_4450(freq*15.625);
-	} else if (freq > FREQ_5000 && freq < FREQ_5200) {
-		thres_34 = THRES_34_5052(freq*15.625);
-		thres_45 = THRES_45_5052(freq*15.625);
-		thres_56 = THRES_56_5052(freq*15.625);
-		thres_67 = THRES_67_5052(freq*15.625);
-		thres_78 = THRES_78_5052(freq*15.625);
-	} else if (freq > FREQ_5200 && freq < FREQ_5600) {
-		thres_34 = THRES_34_5256(freq*15.625);
-		thres_45 = THRES_45_5256(freq*15.625);
-		thres_56 = THRES_56_5256(freq*15.625);
-		thres_67 = THRES_67_5256(freq*15.625);
-		thres_78 = THRES_78_5256(freq*15.625);
-	} else if (freq > FREQ_5600 && freq < FREQ_6200) {
-		thres_34 = THRES_34_5662(freq*15.625);
-		thres_45 = THRES_45_5662(freq*15.625);
-		thres_56 = THRES_56_5662(freq*15.625);
-		thres_67 = THRES_67_5662(freq*15.625);
-		thres_78 = THRES_78_5662(freq*15.625);
-	} else if (freq > FREQ_6200 && freq < FREQ_6600) {
-		thres_34 = THRES_34_6266(freq*15.625);
-		thres_45 = THRES_45_6266(freq*15.625);
-		thres_56 = THRES_56_6266(freq*15.625);
-		thres_67 = THRES_67_6266(freq*15.625);
-		thres_78 = THRES_78_6266(freq*15.625);
-	} else if (freq > FREQ_6600 && freq < FREQ_7200) {
-		thres_34 = THRES_34_6672(freq*15.625);
-		thres_45 = THRES_45_6672(freq*15.625);
-		thres_56 = THRES_56_6672(freq*15.625);
-		thres_67 = THRES_67_6672(freq*15.625);
-		thres_78 = THRES_78_6672(freq*15.625);
-	} else if (freq > FREQ_7200 && freq < FREQ_7800) {
-		thres_34 = THRES_34_7278(freq*15.625);
-		thres_45 = THRES_45_7278(freq*15.625);
-		thres_56 = THRES_56_7278(freq*15.625);
-		thres_67 = THRES_67_7278(freq*15.625);
-		thres_78 = THRES_78_7278(freq*15.625);
+	if (change_freq == 0) {
+		if (freq >= FREQ_3578 && freq < FREQ_3765) {
+			thres_24 = THRES_24_3537(freq*15.625);
+			thres_46 = THRES_46_3537(freq*15.625);
+			thres_68 = THRES_68_3537(freq*15.625);
+		} else if (freq >= FREQ_3765 && freq < FREQ_4500) {
+			thres_24 = THRES_24_3745(freq*15.625);
+			thres_46 = THRES_46_3745(freq*15.625);
+			thres_68 = THRES_68_3745(freq*15.625);
+		} else if (freq >= FREQ_4500 && freq < FREQ_4812) {
+			thres_24 = THRES_24_4548(freq*15.625);
+			thres_46 = THRES_46_4548(freq*15.625);
+			thres_68 = THRES_68_4548(freq*15.625);
+		} else if (freq >= FREQ_4812 && freq < FREQ_5421) {
+			thres_24 = THRES_24_4854(freq*15.625);
+			thres_46 = THRES_46_4854(freq*15.625);
+			thres_68 = THRES_68_4854(freq*15.625);
+		} else if (freq >= FREQ_5421 && freq < FREQ_5984) {
+			thres_24 = THRES_24_5459(freq*15.625);
+			thres_46 = THRES_46_5459(freq*15.625);
+			thres_68 = THRES_68_5459(freq*15.625);
+		} else if (freq >= FREQ_5984 && freq < FREQ_6296) {
+			thres_24 = THRES_24_5962(freq*15.625);
+			thres_46 = THRES_46_5962(freq*15.625);
+			thres_68 = THRES_68_5962(freq*15.625);
+		} else if (freq >= FREQ_6296 && freq < FREQ_6718) {
+			thres_24 = THRES_24_6267(freq*15.625);
+			thres_46 = THRES_46_6267(freq*15.625);
+			thres_68 = THRES_68_6267(freq*15.625);
+		} else if (freq >= FREQ_6718 && freq <= FREQ_7031) {
+			thres_24 = THRES_24_6770(freq*15.625);
+			thres_46 = THRES_46_6770(freq*15.625);
+			thres_68 = THRES_68_6770(freq*15.625);
+		}
+
+		if (mean_intensity > INTENSITY_MIN && mean_intensity < thres_24) {
+			speed_intensity = SPEED_MARCHE_ARRIERE;
+		} else if (mean_intensity > thres_24 && mean_intensity < thres_46) {
+			speed_intensity = VITESSE_NUL;
+		} else if (mean_intensity > thres_46 && mean_intensity < thres_68) {
+			speed_intensity = SPEED_1;
+		} else if (mean_intensity > thres_68) {
+			speed_intensity = SPEED_2;
+		}
+
+		if (thres_24 == 0) {
+			speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
+		}
 	}
 
-	if (mean_intensity > INTENSITY_MIN && mean_intensity < thres_34) {
-		speed_intensity = SPEED_MARCHE_ARRIERE;
-	} else if (mean_intensity > thres_34 && mean_intensity < thres_45) {
-		speed_intensity = VITESSE_NUL;
-	} else if (mean_intensity > thres_45 && mean_intensity < thres_56) {
-		speed_intensity = SPEED_1;
-	} else if (mean_intensity > thres_56 && mean_intensity < thres_67) {
-		speed_intensity = SPEED_2;
-	} else if (mean_intensity > thres_67 && mean_intensity < thres_78) {
-		speed_intensity = SPEED_3;
-	} else if (mean_intensity > thres_78) {
-		speed_intensity = SPEED_4;
-	}
-	if (thres_78 == 0) {
-		speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
-	}
-
-	//chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
 }
 
 void do_band_filter(float * mic_complex_input, float32_t * magn_buffer){
 	uint32_t max_value = 0;
-	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
-		if(magn_buffer[i] > max_value) {
+	pic_detect_last_value = pic_detect;
+	pic_detect = 0;
+	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
+		if (magn_buffer[i] > max_value && magn_buffer[i] > THRESHOLD) {
 			max_value = magn_buffer[i];
 			pic_detect = i;
 		}
