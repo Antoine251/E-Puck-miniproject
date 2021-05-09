@@ -9,7 +9,7 @@
 
 #define Z_AXIS 							2
 #define NUMBER_SAMPLE_IMU 				100
-#define NUMBER_SAMPLE_IMU_CALIBRATION 	2000
+#define NUMBER_SAMPLE_IMU_CALIBRATION 	2000 //eleve pour avoir une bonne reference //probleme ici
 #define ACC_Z_TILT_THRESHOLD			40
 #define ACC_Z_FLAT_THRESHOLD			20
 #define MAX_TILT_COUNTER				3
@@ -35,9 +35,8 @@ static THD_FUNCTION(obs_thd, arg){
 
 		//recupere l'acceleration en z, vaut 0 si au plat
 		z_acc = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU) - offset_acc_z;
-		//chprintf((BaseSequentialStream *)&SDU1, "imu values z_axis : %d \n", z_acc);
 
-		//detection de bosse/plat (3 valeurs consecutives necessaires)
+		//detection de bosse/plat (MAX_TILT_COUNTER valeurs consecutives necessaires)
 		if (z_acc >= ACC_Z_TILT_THRESHOLD) {
 			tilt_counter++;
 			flat_counter = 0;
@@ -45,7 +44,7 @@ static THD_FUNCTION(obs_thd, arg){
 				tilt_counter = MAX_TILT_COUNTER - 1;
 				tilt_state = BUMP_DETECTED;
 			}
-		} else if (z_acc <= ACC_Z_FLAT_THRESHOLD) {			//Tester cette zone !
+		} else if (z_acc <= ACC_Z_FLAT_THRESHOLD) {
 			flat_counter++;
 			tilt_counter = 0;
 			if(flat_counter == MAX_TILT_COUNTER){
@@ -53,7 +52,6 @@ static THD_FUNCTION(obs_thd, arg){
 				tilt_state = NO_BUMP_DETECTED;
 			}
 		}
-		//chprintf((BaseSequentialStream *)&SDU1, "tilt state: %d \n", tilt_state);
 
 		//envoi d'information "bosse" via mailboxe
 		msg_t tilt_state_msg = tilt_state;
@@ -71,7 +69,7 @@ static THD_FUNCTION(obs_thd, arg){
 
 }
 
-void imu_init(void){ //ordre ?
+void imu_init(void){
 	imu_start();
 	calibrate_acc();
 	offset_acc_z = get_acc_filtered(Z_AXIS, NUMBER_SAMPLE_IMU_CALIBRATION);
