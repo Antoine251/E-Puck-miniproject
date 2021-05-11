@@ -11,6 +11,7 @@
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
+#include <leds.h>
 
 //#include <arm_const_structs.h>
 
@@ -55,14 +56,18 @@ static int16_t mean_intensity = 0;
 static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
+static int16_t speed_intensity_last_value = 0;
+static int16_t speed_intensity_2_last_value = 0;
 static uint16_t pic_detect = 0;
 static uint16_t pic_detect_last_value = 0;
+static uint16_t pic_detect_2_last_value = 0;
 static uint8_t change_freq = 0;                //=1 si la fréquence est en train d'être modifié
 
 
 
 //proto************************
 void do_band_filter(float* mic_complex_input, float32_t * magn_buffer);
+uint8_t perturbation(void);
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
@@ -144,12 +149,17 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 			//Vérifie si la fréquence est en train d'être modifié de façon abrupte
 			uint16_t delta_freq = abs(pic_detect - pic_detect_last_value);
-			if(delta_freq > 2 ) {
+			if(delta_freq > 1 ) {
 				change_freq = 1;
 			} else {
 				change_freq = 0;
 			}
 
+			if (pic_detect > FREQ_MIN_SPEED && pic_detect < FREQ_MAX_SPEED) {
+				set_body_led(1);
+			} else {
+				set_body_led(0);
+			}
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			for(uint16_t n = 0; n < 2*FFT_SIZE; n+=2) {
@@ -164,9 +174,8 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-				chprintf((BaseSequentialStream *)&SDU1, "  					mean valu = %d \n", mean_intensity);
 //				uint16_t pic_detect_ = pic_detect*15.625;
-//				chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
+//				chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", mean_intensity, pic_detect_);
 			}
 		} else {
 			compteur += 2;
@@ -274,7 +283,7 @@ void compute_motor_speed() {
 //	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
 	compute_speed_intensity(pic_detect);
 
-	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
+	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
 	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
@@ -295,11 +304,14 @@ void compute_motor_speed() {
 }
 
 void compute_speed_intensity(uint16_t freq) {
+	int16_t old_intensity_v2 = 0;
 	uint16_t thres_24 = 0;
 	uint16_t thres_46 = 0;
 	uint16_t thres_68 = 0;
+	int16_t fix_intensity = 0;
 
 	if (change_freq == 0) {
+		fix_intensity = 0;
 		if (freq >= FREQ_3578 && freq < FREQ_3765) {
 			thres_24 = THRES_24_3537(freq*15.625);
 			thres_46 = THRES_46_3537(freq*15.625);
@@ -338,23 +350,54 @@ void compute_speed_intensity(uint16_t freq) {
 			speed_intensity = SPEED_MARCHE_ARRIERE;
 		} else if (mean_intensity > thres_24 && mean_intensity < thres_46) {
 			speed_intensity = VITESSE_NUL;
+//			chprintf((BaseSequentialStream *)&SDU1, "test \n");
+
+//			uint32_t thres_mid = (thres_24+thres_46)/2;
+//			uint32_t erreur = mean_intensity - thres_mid;
+//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		} else if (mean_intensity > thres_46 && mean_intensity < thres_68) {
 			speed_intensity = SPEED_1;
+//			uint32_t thres_mid = (thres_46+thres_68)/2;
+//			uint32_t erreur = mean_intensity - thres_mid;
+//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		} else if (mean_intensity > thres_68) {
 			speed_intensity = SPEED_2;
+//			uint32_t thres_mid = thres_68;
+//			uint32_t erreur = mean_intensity - thres_mid;
+//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		}
 
 		if (thres_24 == 0) {
 			speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
 		}
+
+		old_intensity_v2 = speed_intensity_last_value;
+		if (perturbation()) {
+			speed_intensity_2_last_value = speed_intensity_last_value;
+			speed_intensity_last_value = speed_intensity;
+			speed_intensity = old_intensity_v2;
+		} else {
+			speed_intensity_2_last_value = speed_intensity_last_value;
+			speed_intensity_last_value = speed_intensity;
+		}
+
+	} else {
+		if (fix_intensity == 0) {
+			fix_intensity = speed_intensity_2_last_value;
+			speed_intensity = fix_intensity;
+			speed_intensity_last_value = fix_intensity;
+			speed_intensity_2_last_value = fix_intensity;
+		}
 	}
 
-	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d \n", speed_intensity);
+//	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n", speed_intensity, change_freq);
+//	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n speed_intensity_1 = %d ; \n speed_intensity_2 = %d ; \n old_intensity = %d ; \n", speed_intensity, change_freq,speed_intensity_last_value,speed_intensity_2_last_value,old_intensity_v2);
 }
 
 void do_band_filter(float * mic_complex_input, float32_t * magn_buffer){
 	uint32_t max_value = 0;
-	pic_detect_last_value = pic_detect;
+	pic_detect_2_last_value = pic_detect_last_value;
+	pic_detect_last_value = pic_detect;    //Sauvegarde la valeur du pic il y a deux cylces
 	pic_detect = 0;
 	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
 		if (magn_buffer[i] > max_value && magn_buffer[i] > THRESHOLD) {
@@ -371,6 +414,13 @@ void do_band_filter(float * mic_complex_input, float32_t * magn_buffer){
 			mic_complex_input[i+1] = 0;
 		}
 	}
+}
+
+//Finalement, on prend la valeur d'intensité qui est apparu le plus de fois dans les 3 dernieres mesures d'intensités
+//--> Filtre les perturbations : des chutes d'intensités soudaines qui ne se répètent pas
+uint8_t perturbation(void) {
+	return (speed_intensity != speed_intensity_last_value && speed_intensity != speed_intensity_2_last_value
+													      && speed_intensity_last_value == speed_intensity_2_last_value);
 }
 
 

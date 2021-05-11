@@ -34,32 +34,32 @@ void wait_send_to_computer(void);
 float* get_audio_buffer_ptr(BUFFER_NAME_t name);
 
 //Ensemble des macros pour le calcul des thresholds en fonction de l'intensité
-#define THRES_24_3537(f)     0.1631*f - 91
-#define THRES_24_3745(f)     -0.4361*f + 2165
-#define THRES_24_4548(f)     0.1458*f - 454
-#define THRES_24_4854(f)     -0.2644*f + 1520
-#define THRES_24_5459(f)     0.0853*f - 375
-#define THRES_24_5962(f)     -0.0946*f + 701
-#define THRES_24_6267(f)     0.1149*f - 618
-#define THRES_24_6770(f)     -0.2204*f + 1635
+#define THRES_24_3537(f)     -0.0922*f + 841
+#define THRES_24_3745(f)     -0.351*f + 1816
+#define THRES_24_4548(f)     -0.0697*f + 550
+#define THRES_24_4854(f)     -0.1839*f + 1099
+#define THRES_24_5459(f)     0.0617*f - 232
+#define THRES_24_5962(f)     -0.0449*f + 406
+#define THRES_24_6267(f)     0.077*f - 362
+#define THRES_24_6770(f)     -0.1981*f + 1486
 
-#define THRES_46_3537(f)     0.3476*f - 366
-#define THRES_46_3745(f)     -0.7884*f + 3911
-#define THRES_46_4548(f)     0.2628*f - 820
-#define THRES_46_4854(f)     -0.4713*f + 2713
-#define THRES_46_5459(f)     0.1563*f - 689
-#define THRES_46_5962(f)     -0.1843*f + 1349
-#define THRES_46_6267(f)     0.2085*f - 1124
-#define THRES_46_6770(f)     -0.3882*f + 2884
+#define THRES_46_3537(f)     -0.127*f + 1368
+#define THRES_46_3745(f)     -0.6276*f + 3253
+#define THRES_46_4548(f)     -0.1466*f + 1089
+#define THRES_46_4854(f)     -0.3255*f + 1949
+#define THRES_46_5459(f)     0.1146*f - 436
+#define THRES_46_5962(f)     -0.0913*f + 796
+#define THRES_46_6267(f)     0.1422*f - 674
+#define THRES_46_6770(f)     -0.3658*f + 2738
 
-#define THRES_68_3537(f)     0.5348*f - 337
-#define THRES_68_3745(f)     -1.3898*f + 6909
-#define THRES_68_4548(f)     0.4728*f - 1472
-#define THRES_68_4854(f)     -0.8563*f + 4923
-#define THRES_68_5459(f)     0.2931*f - 1308
-#define THRES_68_5962(f)     -0.3205*f + 2364
-#define THRES_68_6267(f)     0.3329*f - 1750
-#define THRES_68_6770(f)     -0.7173*f + 5305
+#define THRES_68_3537(f)     -0.2874*f + 2664
+#define THRES_68_3745(f)     -1.101*f + 5727
+#define THRES_68_4548(f)     -0.266*f + 1970
+#define THRES_68_4854(f)     -0.5866*f + 3513
+#define THRES_68_5459(f)     0.21*f - 806
+#define THRES_68_5962(f)     -0.1611*f + 1415
+#define THRES_68_6267(f)     0.2358*f - 1084
+#define THRES_68_6770(f)     -0.635*f + 4766
 
 #define INTENSITY_MIN 			50
 
