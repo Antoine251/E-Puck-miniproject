@@ -13,18 +13,17 @@
 #include <arm_math.h>
 #include <leds.h>
 
-//#include <arm_const_structs.h>
-
-#define FREQ_MAX_SPEED      	448   //7000 Hz
-#define FREQ_SPEED_NUL_MIN  	334   //5218 - 5281 Hz --> On avance tout droit sur une range de fréquence
+#define FREQ_MAX_SPEED      	448   		//7000 Hz
+#define FREQ_SPEED_NUL_MIN  	334   		//5218 - 5281 Hz --> On avance tout droit sur une range de fréquence
 #define FREQ_SPEED_NUL_MAX  	338
-#define FREQ_MIN_SPEED      	224   //3500 Hz
-#define FREQ_MIN_DETECT			64    //2000 Hz
-#define FREQ_MAX_DETECT			512   //8000 Hz (max de détection de la fréquence)
-#define THRESHOLD           	10000  //seuil de détection du son
+#define FREQ_MIN_SPEED      	224   		//3500 Hz
+#define FREQ_MIN_DETECT			64    		//2000 Hz
+#define FREQ_MAX_DETECT			512   		//8000 Hz (max de détection de la fréquence)
+#define THRESHOLD           	10000  		//seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
-#define COEF_CORRECTION			2
+#define COEF_CORRECTION			2			//coefficient multiplicateur pour la rotation du robot
 #define NBR_VALEUR_MOYENNE		1
+#define BACK_MIC 				2
 
 //liste des fréquences seuiles pour la détection de l'intensité
 #define FREQ_3578				229
@@ -37,36 +36,24 @@
 #define FREQ_6718				430
 #define FREQ_7031				450
 
-//semaphore
-static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
-
 //2 times FFT_SIZE because these arrays contain complex numbers (real + imaginary)
-static float micLeft_cmplx_input[2 * FFT_SIZE];
-static float micRight_cmplx_input[2 * FFT_SIZE];
-static float micFront_cmplx_input[2 * FFT_SIZE];
-static float micBack_cmplx_input[2 * FFT_SIZE];
+static float mic_cmplx_input[2 * FFT_SIZE];
+
 //Arrays containing the computed magnitude of the complex numbers
-static float micLeft_output[FFT_SIZE];
-static float micRight_output[FFT_SIZE];
-static float micFront_output[FFT_SIZE];
-static float micBack_output[FFT_SIZE];
+static float mic_output[FFT_SIZE];
 
 static int16_t mean_intensity = 0;
-
 static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
 static int16_t speed_intensity_last_value = 0;
 static int16_t speed_intensity_2_last_value = 0;
-static uint16_t pic_detect = 0;
-static uint16_t pic_detect_last_value = 0;
-static uint16_t pic_detect_2_last_value = 0;
 static uint8_t change_freq = 0;                //=1 si la fréquence est en train d'être modifié
 
 
 
 //proto************************
-void do_band_filter(float* mic_complex_input, float32_t * magn_buffer);
+void do_band_filter(float* mic_complex_input, uint16_t pic_detect);
 uint8_t perturbation(void);
 
 /*
@@ -87,29 +74,29 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	*	1024 samples, then we compute the FFTs.
 	*
 	*/
-
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
 	static int32_t somme_max_valu = 0;
 	int32_t max_valu = 0;
 	static uint16_t compteurbis = 0;
 
+	static uint16_t pic_detect = 0;
+	static uint16_t pic_detect_last_value = 0;
+//	chprintf((BaseSequentialStream *)&SDU1, " test : %d \n", pic_detect);
+
+
 	for(uint16_t i = 0; i < num_samples; i += 4) {
-		micRight_cmplx_input[compteur] = data[i];
-		micRight_cmplx_input[compteur+1] = 0;
-		micLeft_cmplx_input[compteur] = data[i+2];    //i+1
-		micLeft_cmplx_input[compteur+1] = 0;
-		micBack_cmplx_input[compteur] = data[i+2];
-		micBack_cmplx_input[compteur+1] = 0;
-		micFront_cmplx_input[compteur] = data[i+3];
-		micFront_cmplx_input[compteur+1] = 0;
+		mic_cmplx_input[compteur] = data[i+BACK_MIC];
+		mic_cmplx_input[compteur+1] = 0;
 
-		if (compteur == 2 * FFT_SIZE) {
+		compteur += 2;
 
+		if (compteur >= (2 * FFT_SIZE)) {
 
+//			chprintf((BaseSequentialStream *)&SDU1, "               pic = %d ; %d \n", pic_detect,rotation_speed_left);
 
-			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
-			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+			doFFT_optimized(FFT_SIZE, mic_cmplx_input);
+			arm_cmplx_mag_f32(mic_cmplx_input, mic_output, FFT_SIZE);
 
 //			uint32_t valeur_max2 = 0;
 			//chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
@@ -124,11 +111,21 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			//chprintf((BaseSequentialStream *)&SDU1, "] \n");
 			//chprintf((BaseSequentialStream *)&SDU1, "               pic = %d \n", pic_detect2);
 
-			do_band_filter(micLeft_cmplx_input, micLeft_output);
+//			chprintf((BaseSequentialStream *)&SDU1, "               pic = %d \n", pic_detect);
+			uint32_t max_value = 0;
+			pic_detect_last_value = pic_detect;    //Sauvegarde la valeur du pic il y a deux cylces
+			pic_detect = 0;
+			for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
+				if (mic_output[i] > max_value && mic_output[i] > THRESHOLD) {
+					max_value = mic_output[i];
+					pic_detect = i;
+				}
+			}
+			do_band_filter(mic_cmplx_input, pic_detect);
 
-			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+			arm_cmplx_mag_f32(mic_cmplx_input, mic_output, FFT_SIZE);
 			//FFT reverse
-			doFFT_inverse_optimized(FFT_SIZE, micLeft_cmplx_input);
+			doFFT_inverse_optimized(FFT_SIZE, mic_cmplx_input);
 
 //			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
 //			for (uint16_t j = 0; j < 2*FFT_SIZE; j += 2) {
@@ -163,8 +160,8 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			for(uint16_t n = 0; n < 2*FFT_SIZE; n+=2) {
-				if (max_valu < micLeft_cmplx_input[n]) {
-					max_valu = micLeft_cmplx_input[n];
+				if (max_valu < mic_cmplx_input[n]) {
+					max_valu = mic_cmplx_input[n];
 				}
 			}
 			somme_max_valu += max_valu;
@@ -174,19 +171,18 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
 				compteurbis = 0;
 				somme_max_valu = 0;
-//				uint16_t pic_detect_ = pic_detect*15.625;
-//				chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", mean_intensity, pic_detect_);
+				uint16_t pic_detect_ = pic_detect*15.625;
+				chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", mean_intensity, pic_detect_);
 			}
-		} else {
-			compteur += 2;
+			break;
 		}
 	}
 
 	// activate the semaphore
 	if (sem_ready) { 		//&& (must_send == 8)) {
-		chBSemSignal(&sendToComputer_sem);
+//		chBSemSignal(&sendToComputer_sem);
 		//must_send = 0;
-		compute_motor_speed();
+		compute_motor_speed(pic_detect);
 	}
 //	} else {
 //		if (sem_ready) {
@@ -197,43 +193,43 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 }
 
 
-void wait_send_to_computer(void){
-	chBSemWait(&sendToComputer_sem);
-}
+//void wait_send_to_computer(void){
+//	chBSemWait(&sendToComputer_sem);
+//}
 
-float* get_audio_buffer_ptr(BUFFER_NAME_t name){
-	if(name == LEFT_CMPLX_INPUT){
-		return micLeft_cmplx_input;
-	}
-	else if (name == RIGHT_CMPLX_INPUT){
-		return micRight_cmplx_input;
-	}
-	else if (name == FRONT_CMPLX_INPUT){
-		return micFront_cmplx_input;
-	}
-	else if (name == BACK_CMPLX_INPUT){
-		return micBack_cmplx_input;
-	}
-	else if (name == LEFT_OUTPUT){
-		return micLeft_output;
-	}
-	else if (name == RIGHT_OUTPUT){
-		return micRight_output;
-	}
-	else if (name == FRONT_OUTPUT){
-		return micFront_output;
-	}
-	else if (name == BACK_OUTPUT){
-		return micBack_output;
-	}
-	else{
-		return NULL;
-	}
-}
+//float* get_audio_buffer_ptr(BUFFER_NAME_t name){
+//	if(name == LEFT_CMPLX_INPUT){
+//		return mic_cmplx_input;
+//	}
+//	else if (name == RIGHT_CMPLX_INPUT){
+//		return micRight_cmplx_input;
+//	}
+//	else if (name == FRONT_CMPLX_INPUT){
+//		return micFront_cmplx_input;
+//	}
+//	else if (name == BACK_CMPLX_INPUT){
+//		return micBack_cmplx_input;
+//	}
+//	else if (name == LEFT_OUTPUT){
+//		return micLeft_output;
+//	}
+//	else if (name == RIGHT_OUTPUT){
+//		return micRight_output;
+//	}
+//	else if (name == FRONT_OUTPUT){
+//		return micFront_output;
+//	}
+//	else if (name == BACK_OUTPUT){
+//		return micBack_output;
+//	}
+//	else{
+//		return NULL;
+//	}
+//}
 
 //Détecte le pic en fréquence et associe une vitessea additionner à la valeur déterminée
 //par l'intensité du son pour le moteur gauche et droite
-void compute_motor_speed() {
+void compute_motor_speed(uint16_t pic_detect) {
 	//uint16_t pic_haut = 0;
 	//uint16_t pic_bas = 0;
 //	uint16_t pic_detect = 0;
@@ -390,22 +386,11 @@ void compute_speed_intensity(uint16_t freq) {
 		}
 	}
 
-//	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n", speed_intensity, change_freq);
+	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n", speed_intensity, change_freq);
 //	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n speed_intensity_1 = %d ; \n speed_intensity_2 = %d ; \n old_intensity = %d ; \n", speed_intensity, change_freq,speed_intensity_last_value,speed_intensity_2_last_value,old_intensity_v2);
 }
 
-void do_band_filter(float * mic_complex_input, float32_t * magn_buffer){
-	uint32_t max_value = 0;
-	pic_detect_2_last_value = pic_detect_last_value;
-	pic_detect_last_value = pic_detect;    //Sauvegarde la valeur du pic il y a deux cylces
-	pic_detect = 0;
-	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
-		if (magn_buffer[i] > max_value && magn_buffer[i] > THRESHOLD) {
-			max_value = magn_buffer[i];
-			pic_detect = i;
-		}
-	}
-
+void do_band_filter(float * mic_complex_input, uint16_t pic_detect) {
 	//enleve les vals pas autour du pic
 	for(uint16_t  i = 0; i < 2*FFT_SIZE; i+=2) {
 		//if(i < (pic_detect*2 - 1) || i > (pic_detect*2 + 1)){

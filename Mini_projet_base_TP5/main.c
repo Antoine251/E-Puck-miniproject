@@ -66,7 +66,7 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    messagebus_init(&bus, &bus_lock, &bus_condvar); //car bus utilisé dans proximity // et imu ??
+    messagebus_init(&bus, &bus_lock, &bus_condvar); //car bus utilisï¿½ dans proximity // et imu ??
 
     //starts the serial communication
     serial_start();
@@ -84,8 +84,7 @@ int main(void)
 
     //send_tab is used to save the state of the buffer to send (double buffering)
     //to avoid modifications of the buffer while sending it
-    static float send_tab[FFT_SIZE];
-
+//    static float send_tab[FFT_SIZE];
     //#ifdef SEND_FROM_MIC
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
@@ -96,12 +95,12 @@ int main(void)
     while (1) {
     	//#ifdef SEND_FROM_MIC
         //waits until a result must be sent to the computer
-        wait_send_to_computer();
+//        wait_send_to_computer();
         //#ifdef DOUBLE_BUFFERING
         //we copy the buffer to avoid conflicts
-        chprintf((BaseSequentialStream *)&SD3, "test \n");
-        arm_copy_f32(get_audio_buffer_ptr(LEFT_OUTPUT), send_tab, FFT_SIZE);
-        SendFloatToComputer((BaseSequentialStream *) &SD3, send_tab, FFT_SIZE);
+//        chprintf((BaseSequentialStream *)&SDU1, "test \n");
+//        arm_copy_f32(get_audio_buffer_ptr(BACK_OUTPUT), send_tab, FFT_SIZE);
+//        SendFloatToComputer((BaseSequentialStream *) &SD3, send_tab, FFT_SIZE);
 //#else
 //        SendFloatToComputer((BaseSequentialStream *) &SD3, get_audio_buffer_ptr(LEFT_OUTPUT), FFT_SIZE);
 //#endif  /* DOUBLE_BUFFERING */
