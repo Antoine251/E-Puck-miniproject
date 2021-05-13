@@ -22,7 +22,6 @@
 #define THRESHOLD           	10000  		//seuil de détection du son
 #define MAX_CORRECTION_SPEED	(FREQ_MAX_SPEED - FREQ_SPEED_NUL_MAX)*COEF_CORRECTION  //step par seconde
 #define COEF_CORRECTION			2			//coefficient multiplicateur pour la rotation du robot
-#define NBR_VALEUR_MOYENNE		1
 #define BACK_MIC 				2
 
 //liste des fréquences seuiles pour la détection de l'intensité
@@ -42,7 +41,6 @@ static float mic_cmplx_input[2 * FFT_SIZE];
 //Arrays containing the computed magnitude of the complex numbers
 static float mic_output[FFT_SIZE];
 
-static int16_t mean_intensity = 0;
 static int16_t rotation_speed_left = 0;
 static int16_t rotation_speed_right = 0;
 static int16_t speed_intensity = 0;
@@ -76,9 +74,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	*/
 	static uint16_t compteur = 0;
 	uint8_t sem_ready = 0;
-	static int32_t somme_max_valu = 0;
-	int32_t max_valu = 0;
-	static uint16_t compteurbis = 0;
+	int32_t max_intensity = 0;
 
 	static uint16_t pic_detect = 0;
 	static uint16_t pic_detect_last_value = 0;
@@ -160,20 +156,13 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 			//calculer la moyenne de la valeur max sur NBR_VALEUR_CYCLE cycles
 			for(uint16_t n = 0; n < 2*FFT_SIZE; n+=2) {
-				if (max_valu < mic_cmplx_input[n]) {
-					max_valu = mic_cmplx_input[n];
+				if (max_intensity < mic_cmplx_input[n]) {
+					max_intensity = mic_cmplx_input[n];
 				}
 			}
-			somme_max_valu += max_valu;
-			//chprintf((BaseSequentialStream *)&SDU1, "max value = %d; somme = %d \n", max_valu, somme_max_valu);
-			++compteurbis;
-			if(compteurbis == NBR_VALEUR_MOYENNE) {
-				mean_intensity = somme_max_valu/NBR_VALEUR_MOYENNE;
-				compteurbis = 0;
-				somme_max_valu = 0;
-				uint16_t pic_detect_ = pic_detect*15.625;
-				chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", mean_intensity, pic_detect_);
-			}
+
+			uint16_t pic_detect_ = pic_detect*15.625;
+			chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", max_intensity, pic_detect_);
 			break;
 		}
 	}
@@ -182,7 +171,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	if (sem_ready) { 		//&& (must_send == 8)) {
 //		chBSemSignal(&sendToComputer_sem);
 		//must_send = 0;
-		compute_motor_speed(pic_detect);
+		compute_motor_speed(pic_detect, max_intensity);
 	}
 //	} else {
 //		if (sem_ready) {
@@ -229,7 +218,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 //Détecte le pic en fréquence et associe une vitessea additionner à la valeur déterminée
 //par l'intensité du son pour le moteur gauche et droite
-void compute_motor_speed(uint16_t pic_detect) {
+void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
 	//uint16_t pic_haut = 0;
 	//uint16_t pic_bas = 0;
 //	uint16_t pic_detect = 0;
@@ -277,7 +266,7 @@ void compute_motor_speed(uint16_t pic_detect) {
 
 //	uint16_t pic_detect_ = pic_detect*15.625;
 //	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
-	compute_speed_intensity(pic_detect);
+	compute_speed_intensity(pic_detect, mesured_intensity);
 
 	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
 
@@ -299,7 +288,7 @@ void compute_motor_speed(uint16_t pic_detect) {
 	//right_motor_set_speed(rotation_speed_right);
 }
 
-void compute_speed_intensity(uint16_t freq) {
+void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 	int16_t old_intensity_v2 = 0;
 	uint16_t thres_24 = 0;
 	uint16_t thres_46 = 0;
@@ -342,21 +331,21 @@ void compute_speed_intensity(uint16_t freq) {
 			thres_68 = THRES_68_6770(freq*15.625);
 		}
 
-		if (mean_intensity > INTENSITY_MIN && mean_intensity < thres_24) {
+		if (mesured_intensity > INTENSITY_MIN && mesured_intensity < thres_24) {
 			speed_intensity = SPEED_MARCHE_ARRIERE;
-		} else if (mean_intensity > thres_24 && mean_intensity < thres_46) {
+		} else if (mesured_intensity > thres_24 && mesured_intensity < thres_46) {
 			speed_intensity = VITESSE_NUL;
 //			chprintf((BaseSequentialStream *)&SDU1, "test \n");
 
 //			uint32_t thres_mid = (thres_24+thres_46)/2;
 //			uint32_t erreur = mean_intensity - thres_mid;
 //			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
-		} else if (mean_intensity > thres_46 && mean_intensity < thres_68) {
+		} else if (mesured_intensity > thres_46 && mesured_intensity < thres_68) {
 			speed_intensity = SPEED_1;
 //			uint32_t thres_mid = (thres_46+thres_68)/2;
 //			uint32_t erreur = mean_intensity - thres_mid;
 //			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
-		} else if (mean_intensity > thres_68) {
+		} else if (mesured_intensity > thres_68) {
 			speed_intensity = SPEED_2;
 //			uint32_t thres_mid = thres_68;
 //			uint32_t erreur = mean_intensity - thres_mid;

@@ -20,8 +20,8 @@ typedef enum {
 void processAudioData(int16_t *data, uint16_t num_samples);
 
 //Calcul la vitesse associée à l'intensité et à la fréquence du son
-void compute_motor_speed(uint16_t pic_detect);
-void compute_speed_intensity(uint16_t freq);
+void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity);
+void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity);
 
 /*
 *	put the invoking thread into sleep until it can process the audio datas
