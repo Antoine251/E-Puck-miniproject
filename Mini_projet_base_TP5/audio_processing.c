@@ -51,12 +51,12 @@ static uint8_t change_freq = 0;                //=1 si la fréquence est en trai
 
 /***************************PROTOTYPE OF INTERNAL FUNCTIONS************************************/
 
-void do_band_filter(float* mic_complex_input, uint16_t pic_detect);
-uint8_t perturbation(void);
 uint16_t compute_frequency(float32_t * mic_output);
+void do_band_filter(float* mic_complex_input, uint16_t pic_detect);
 void compute_rotation_speed(uint16_t pic_detect);
 void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity);
 void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity);
+uint8_t perturbation(void);
 
 /***************************DECLARATION OF INTERNAL FUNCTIONS************************************/
 
@@ -182,7 +182,7 @@ void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
 *	Calcul la vitesse de rotation qui correspond à la fréquence mesurée
 *
 *	params :
-*	uint16_t pic_detect  		fréquence jouée
+*	uint16_t pic_detect  		Fréquence jouée
 */
 void compute_rotation_speed(uint16_t pic_detect) {
 	if (pic_detect > FREQ_SPEED_NUL_MIN && pic_detect < FREQ_SPEED_NUL_MAX) {
@@ -210,11 +210,11 @@ void compute_rotation_speed(uint16_t pic_detect) {
 *	Calcul la vitesse en ligne droite associée à la fréquence et l'intensité mesurées
 *
 *	params :
-*	uint16_t freq  					fréquence jouée
-*	int32_t mesured_intensity		intensité mesurée
+*	uint16_t freq  					Fréquence jouée
+*	int32_t mesured_intensity		Intensité mesurée
 */
 void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
-	int16_t old_intensity_v2 = 0;
+	int16_t old_intensity = 0;  //variable tampon nécessaire dans les cas de perturbations
 	uint16_t thres_24 = 0;
 	uint16_t thres_46 = 0;
 	uint16_t thres_68 = 0;
@@ -267,20 +267,20 @@ void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 		}
 
 		if (thres_24 == 0) {
-			speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis
+			speed_intensity = VITESSE_NUL;       //aucune fréquence n'est jouée, les threshold ne sont pas définis donc le robot ne doit pas avancer
 		}
 
-		old_intensity_v2 = speed_intensity_last_value;
-		if (perturbation()) {
-			speed_intensity_2_last_value = speed_intensity_last_value;
+		old_intensity = speed_intensity_last_value;
+		if (perturbation()) {												// Si on détecte une perturbation, la vitesse reprend son ancienne valeur,
+			speed_intensity_2_last_value = speed_intensity_last_value;		// mais la vraie valeur est quand même conservé dans speed_intensity_last_value
 			speed_intensity_last_value = speed_intensity;
-			speed_intensity = old_intensity_v2;
+			speed_intensity = old_intensity;
 		} else {
 			speed_intensity_2_last_value = speed_intensity_last_value;
 			speed_intensity_last_value = speed_intensity;
 		}
 
-	} else {		//La fréquence est en train d'être modifié, on gèle la valeur de la vitesse à la vitesse d'il y a deux cycles
+	} else {						//La fréquence est en train d'être modifié, on gèle la valeur de la vitesse à la vitesse d'il y a deux cycles
 		if (fix_intensity == 0) {
 			fix_intensity = 1;
 			speed_intensity = speed_intensity_2_last_value;
@@ -289,13 +289,18 @@ void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 	}
 
 	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n", speed_intensity, change_freq);
-//	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n speed_intensity_1 = %d ; \n speed_intensity_2 = %d ; \n old_intensity = %d ; \n", speed_intensity, change_freq,speed_intensity_last_value,speed_intensity_2_last_value,old_intensity_v2);
 }
 
+/*
+*	Filtre le résultat de la FFT pour ne conserver que le pic détecté
+*
+*	params :
+*	float * mic_complex_input  					Buffer d'entré sur lequel on a appliqué la FFT
+*	uint16_t pic_detect							Position du pic a conservé
+*/
 void do_band_filter(float * mic_complex_input, uint16_t pic_detect) {
-	//enleve les vals pas autour du pic
+	//enlève toutes les valeurs autour du pic
 	for(uint16_t  i = 0; i < 2*FFT_SIZE; i+=2) {
-		//if(i < (pic_detect*2 - 1) || i > (pic_detect*2 + 1)){
 		if(i != pic_detect*2) {
 			mic_complex_input[i] = 0;
 			mic_complex_input[i+1] = 0;
@@ -303,8 +308,10 @@ void do_band_filter(float * mic_complex_input, uint16_t pic_detect) {
 	}
 }
 
-//Finalement, on prend la valeur d'intensité qui est apparu le plus de fois dans les 3 dernieres mesures d'intensités
-//--> Filtre les perturbations : des chutes d'intensités soudaines qui ne se répètent pas
+/*
+*	Renvoie un booléen qui indique si une perturbation a été détecté
+*	Perturbation : modification subite de l'intensité sur un cycle sans changement de fréquence ni du niveau du son sur le téléphone
+*/
 uint8_t perturbation(void) {
 	return (speed_intensity != speed_intensity_last_value && speed_intensity != speed_intensity_2_last_value
 													      && speed_intensity_last_value == speed_intensity_2_last_value);
