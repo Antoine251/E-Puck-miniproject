@@ -72,11 +72,9 @@ void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity);
 void processAudioData(int16_t *data, uint16_t num_samples){
 
 	/*
-	*
 	*	We get 160 samples per mic every 10ms
 	*	So we fill the samples buffers to reach
 	*	1024 samples, then we compute the FFTs.
-	*
 	*/
 	static uint16_t compteur = 0;
 	int32_t max_intensity = 0;
@@ -101,11 +99,8 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 			do_band_filter(mic_cmplx_input, pic_detect);
 
-			arm_cmplx_mag_f32(mic_cmplx_input, mic_output, FFT_SIZE);
 			//FFT reverse
 			doFFT_inverse_optimized(FFT_SIZE, mic_cmplx_input);
-
-			compteur = 0;
 
 			//Vérifie si la fréquence est en train d'être modifié de façon abrupte
 			uint16_t delta_freq = abs(pic_detect - pic_detect_last_value);
@@ -131,11 +126,18 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			uint16_t pic_detect_ = pic_detect*15.625;
 			chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", max_intensity, pic_detect_);
 
+			compteur = 0;  //On rempli une nouvelle fois le buffer d'entré
 			compute_motor_speed(pic_detect, max_intensity);
 		}
 	}
 }
 
+/*
+*	Calcul la fréquence jouée par l'enceinte
+*
+*	params :
+*	float32_t * mic_output			Norme de la FFT calculée !
+*/
 uint16_t compute_frequency(float32_t * mic_output) {
 	uint32_t max_value = 0;
 	uint16_t freq = 0;
@@ -175,6 +177,13 @@ void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
 	chSysUnlock();
 }
 
+
+/*
+*	Calcul la vitesse de rotation qui correspond à la fréquence mesurée
+*
+*	params :
+*	uint16_t pic_detect  		fréquence jouée
+*/
 void compute_rotation_speed(uint16_t pic_detect) {
 	if (pic_detect > FREQ_SPEED_NUL_MIN && pic_detect < FREQ_SPEED_NUL_MAX) {
 		rotation_speed_left = 0;
@@ -197,16 +206,23 @@ void compute_rotation_speed(uint16_t pic_detect) {
 	}
 }
 
+/*
+*	Calcul la vitesse en ligne droite associée à la fréquence et l'intensité mesurées
+*
+*	params :
+*	uint16_t freq  					fréquence jouée
+*	int32_t mesured_intensity		intensité mesurée
+*/
 void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 	int16_t old_intensity_v2 = 0;
 	uint16_t thres_24 = 0;
 	uint16_t thres_46 = 0;
 	uint16_t thres_68 = 0;
-	int16_t fix_intensity = 0;
+	uint8_t fix_intensity = 0;	//variable booléenne pour savoir si la vitesse a été gelé (=1) ou non(=0)
 
-	if (change_freq == 0) {
-		fix_intensity = 0;
-		if (freq >= FREQ_3578 && freq < FREQ_3765) {
+	if (change_freq == 0) {										// La fréquence n'est pas en train d'être modifié,
+		fix_intensity = 0;										// on mesure les thresholds en fonction de la fréqence
+		if (freq >= FREQ_3578 && freq < FREQ_3765) {			// et on associe à notre intensité une vitesse
 			thres_24 = THRES_24_3537(freq*15.625);
 			thres_46 = THRES_46_3537(freq*15.625);
 			thres_68 = THRES_68_3537(freq*15.625);
@@ -244,21 +260,10 @@ void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 			speed_intensity = SPEED_MARCHE_ARRIERE;
 		} else if (mesured_intensity > thres_24 && mesured_intensity < thres_46) {
 			speed_intensity = VITESSE_NUL;
-//			chprintf((BaseSequentialStream *)&SDU1, "test \n");
-
-//			uint32_t thres_mid = (thres_24+thres_46)/2;
-//			uint32_t erreur = mean_intensity - thres_mid;
-//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		} else if (mesured_intensity > thres_46 && mesured_intensity < thres_68) {
 			speed_intensity = SPEED_1;
-//			uint32_t thres_mid = (thres_46+thres_68)/2;
-//			uint32_t erreur = mean_intensity - thres_mid;
-//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		} else if (mesured_intensity > thres_68) {
 			speed_intensity = SPEED_2;
-//			uint32_t thres_mid = thres_68;
-//			uint32_t erreur = mean_intensity - thres_mid;
-//			chprintf((BaseSequentialStream *)&SDU1, "erreur thres = %d ;\n",erreur);
 		}
 
 		if (thres_24 == 0) {
@@ -275,12 +280,11 @@ void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 			speed_intensity_last_value = speed_intensity;
 		}
 
-	} else {
+	} else {		//La fréquence est en train d'être modifié, on gèle la valeur de la vitesse à la vitesse d'il y a deux cycles
 		if (fix_intensity == 0) {
-			fix_intensity = speed_intensity_2_last_value;
-			speed_intensity = fix_intensity;
-			speed_intensity_last_value = fix_intensity;
-			speed_intensity_2_last_value = fix_intensity;
+			fix_intensity = 1;
+			speed_intensity = speed_intensity_2_last_value;
+			speed_intensity_last_value = speed_intensity_2_last_value;
 		}
 	}
 
