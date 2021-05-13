@@ -49,10 +49,16 @@ static int16_t speed_intensity_2_last_value = 0;
 static uint8_t change_freq = 0;                //=1 si la fréquence est en train d'être modifié
 
 
+/***************************PROTOTYPE OF INTERNAL FUNCTIONS************************************/
 
-//proto************************
 void do_band_filter(float* mic_complex_input, uint16_t pic_detect);
 uint8_t perturbation(void);
+uint16_t compute_frequency(float32_t * mic_output);
+void compute_rotation_speed(uint16_t pic_detect);
+void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity);
+void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity);
+
+/***************************DECLARATION OF INTERNAL FUNCTIONS************************************/
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
@@ -73,12 +79,10 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	*
 	*/
 	static uint16_t compteur = 0;
-	uint8_t sem_ready = 0;
 	int32_t max_intensity = 0;
 
 	static uint16_t pic_detect = 0;
 	static uint16_t pic_detect_last_value = 0;
-//	chprintf((BaseSequentialStream *)&SDU1, " test : %d \n", pic_detect);
 
 
 	for(uint16_t i = 0; i < num_samples; i += 4) {
@@ -89,56 +93,19 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 		if (compteur >= (2 * FFT_SIZE)) {
 
-//			chprintf((BaseSequentialStream *)&SDU1, "               pic = %d ; %d \n", pic_detect,rotation_speed_left);
-
 			doFFT_optimized(FFT_SIZE, mic_cmplx_input);
 			arm_cmplx_mag_f32(mic_cmplx_input, mic_output, FFT_SIZE);
 
-//			uint32_t valeur_max2 = 0;
-			//chprintf((BaseSequentialStream *)&SDU1, "valeur en entree : \n [");
-//			for (uint16_t j = 0; j < FFT_SIZE; j += 1) {
-//				uint32_t valeur = micLeft_output[j];
-//				//chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-//				if (valeur > valeur_max2) {
-//					valeur_max2 = valeur;
-//					pic_detect2 = j*15.625;
-//				}
-//			}
-			//chprintf((BaseSequentialStream *)&SDU1, "] \n");
-			//chprintf((BaseSequentialStream *)&SDU1, "               pic = %d \n", pic_detect2);
+			pic_detect_last_value = pic_detect;    //Sauvegarde la valeur de la fréquence de l'entrée précédente
+			pic_detect = compute_frequency(mic_output);
 
-//			chprintf((BaseSequentialStream *)&SDU1, "               pic = %d \n", pic_detect);
-			uint32_t max_value = 0;
-			pic_detect_last_value = pic_detect;    //Sauvegarde la valeur du pic il y a deux cylces
-			pic_detect = 0;
-			for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
-				if (mic_output[i] > max_value && mic_output[i] > THRESHOLD) {
-					max_value = mic_output[i];
-					pic_detect = i;
-				}
-			}
 			do_band_filter(mic_cmplx_input, pic_detect);
 
 			arm_cmplx_mag_f32(mic_cmplx_input, mic_output, FFT_SIZE);
 			//FFT reverse
 			doFFT_inverse_optimized(FFT_SIZE, mic_cmplx_input);
 
-//			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
-//			for (uint16_t j = 0; j < 2*FFT_SIZE; j += 2) {
-//				int32_t valeur = micLeft_cmplx_input[j];
-//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-//			}
-//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
-
 			compteur = 0;
-			sem_ready = 1;
-
-//			chprintf((BaseSequentialStream *)&SDU1, "valeur en sortie : \n [");
-//			for (uint16_t j = 0; j <= 1024; j += 1) {
-//				int16_t valeur = micLeft_cmplx_input[j];								//A decale !
-//				chprintf((BaseSequentialStream *)&SDU1, " %d,", valeur);
-//			}
-//			chprintf((BaseSequentialStream *)&SDU1, "] \n");
 
 			//Vérifie si la fréquence est en train d'être modifié de façon abrupte
 			uint16_t delta_freq = abs(pic_detect - pic_detect_last_value);
@@ -163,87 +130,52 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 			uint16_t pic_detect_ = pic_detect*15.625;
 			chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", max_intensity, pic_detect_);
-			break;
+
+			compute_motor_speed(pic_detect, max_intensity);
 		}
 	}
-
-	// activate the semaphore
-	if (sem_ready) { 		//&& (must_send == 8)) {
-//		chBSemSignal(&sendToComputer_sem);
-		//must_send = 0;
-		compute_motor_speed(pic_detect, max_intensity);
-	}
-//	} else {
-//		if (sem_ready) {
-//			must_send++;
-//		}
-//	}
-	sem_ready = 0;
 }
 
+uint16_t compute_frequency(float32_t * mic_output) {
+	uint32_t max_value = 0;
+	uint16_t freq = 0;
+	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_DETECT; ++i) {
+		if (mic_output[i] > max_value && mic_output[i] > THRESHOLD) {
+			max_value = mic_output[i];
+			freq = i;
+		}
+	}
+	return freq;
+}
 
-//void wait_send_to_computer(void){
-//	chBSemWait(&sendToComputer_sem);
-//}
-
-//float* get_audio_buffer_ptr(BUFFER_NAME_t name){
-//	if(name == LEFT_CMPLX_INPUT){
-//		return mic_cmplx_input;
-//	}
-//	else if (name == RIGHT_CMPLX_INPUT){
-//		return micRight_cmplx_input;
-//	}
-//	else if (name == FRONT_CMPLX_INPUT){
-//		return micFront_cmplx_input;
-//	}
-//	else if (name == BACK_CMPLX_INPUT){
-//		return micBack_cmplx_input;
-//	}
-//	else if (name == LEFT_OUTPUT){
-//		return micLeft_output;
-//	}
-//	else if (name == RIGHT_OUTPUT){
-//		return micRight_output;
-//	}
-//	else if (name == FRONT_OUTPUT){
-//		return micFront_output;
-//	}
-//	else if (name == BACK_OUTPUT){
-//		return micBack_output;
-//	}
-//	else{
-//		return NULL;
-//	}
-//}
-
-//Détecte le pic en fréquence et associe une vitessea additionner à la valeur déterminée
-//par l'intensité du son pour le moteur gauche et droite
+/*
+*	Associe à la fréquence calculée une vitesse de rotation ; calcul la vitesse du robot en fonction de l'intensité mesurée
+*	Calcul la vitesse du robot en fonction de l'intensité mesurée
+*	Additionne les deux termes de la vitesse et poste les valeurs dans la mailboxe
+*
+*	params :
+*	uint16_t pic_detect			Fréquence mesurée
+*	int32_t mesured_intensity	Intensité mesurée en entrée du micro après le filtrage
+*/
 void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
-	//uint16_t pic_haut = 0;
-	//uint16_t pic_bas = 0;
-//	uint16_t pic_detect = 0;
-//	uint16_t max_value = 0;
-//	for(uint16_t  i = FREQ_MIN_DETECT; i < FREQ_MAX_SPEED; ++i) {
-//		if(micLeft_output[i] > max_value && micLeft_output[i] > THRESHOLD) {
-//			max_value = micLeft_output[i];
-//			pic_detect = i;
-//		}
-//	}
-//		if(micLeft_output[i] > THRESHOLD) {
-//			pic_bas = i;
-//		}
-//		if(micLeft_output[i] < THRESHOLD && pic_bas) {
-//			pic_haut = i;
-//			break;
-//		}
-//	}
-//	if (pic_haut && pic_bas) {
-//		pic_detect = (pic_haut + pic_bas)/2;
-//	} else {
-//		pic_detect = 0;
-//	}
-	//chprintf((BaseSequentialStream *)&SDU1, "max value = %d \n", max_value);
 
+	compute_rotation_speed(pic_detect);
+
+	compute_speed_intensity(pic_detect, mesured_intensity);
+
+	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
+
+	//Poste les vitesses calculées dans la mailboxe
+	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
+	msg_t motor_speed_right_correction = speed_intensity + rotation_speed_right;
+	mailbox_t * mail_boxe_ptr = get_mailboxe_micro_adr();
+	chSysLock();
+	chMBPostI(mail_boxe_ptr, motor_speed_left_correction);
+	chMBPostI(mail_boxe_ptr, motor_speed_right_correction);
+	chSysUnlock();
+}
+
+void compute_rotation_speed(uint16_t pic_detect) {
 	if (pic_detect > FREQ_SPEED_NUL_MIN && pic_detect < FREQ_SPEED_NUL_MAX) {
 		rotation_speed_left = 0;
 		rotation_speed_right = 0;
@@ -263,29 +195,6 @@ void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
 		rotation_speed_left = 0;
 		rotation_speed_right = 0;
 	}
-
-//	uint16_t pic_detect_ = pic_detect*15.625;
-//	chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d \n", pic_detect_);
-	compute_speed_intensity(pic_detect, mesured_intensity);
-
-	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
-
-	//Poste les vitesses calculées dans la mailboxe
-	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
-	msg_t motor_speed_right_correction = speed_intensity + rotation_speed_right;
-	mailbox_t * mail_boxe_ptr = get_mailboxe_micro_adr();
-	chSysLock();
-	chMBPostI(mail_boxe_ptr, motor_speed_left_correction);
-	chMBPostI(mail_boxe_ptr, motor_speed_right_correction);
-	chSysUnlock();
-
-//	chSysLock();
-//	size_t mailboxe_size = chMBGetUsedCountI(get_mailboxe_adr());
-//	chSysUnlock();
-//	//chprintf((BaseSequentialStream *)&SDU1, " adresse = %d; taille mailboxe = %d \n", mail_boxe_ptr, mailboxe_size);
-
-	//left_motor_set_speed(rotation_speed_left);
-	//right_motor_set_speed(rotation_speed_right);
 }
 
 void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
