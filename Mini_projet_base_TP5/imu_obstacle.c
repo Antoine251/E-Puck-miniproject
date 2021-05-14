@@ -7,6 +7,9 @@
 #include <mailboxe.h>
 #include <imu_obstacle.h>
 
+//!\ dans notre projet, nous n'avons pas trouve de moyen d'implementer des
+//	 bosses, cette partie de code n'est jamais appelee
+
 #define Z_AXIS 							2
 #define NUMBER_SAMPLE_IMU 				100
 #define NUMBER_SAMPLE_IMU_CALIBRATION 	255
@@ -53,11 +56,13 @@ static THD_FUNCTION(obs_thd, arg){
 			}
 		}
 
-		//envoi d'information "bosse" via mailboxe
+		//envoi d'information "bosse" via mailboxe, mailboxe desactivee
+		/*
 		msg_t tilt_state_msg = tilt_state;
 		chSysLock();
 		chMBPostI(get_mailboxe_imu_adr(), tilt_state_msg);
 		chSysUnlock();
+		*/
 
 		chThdSleepMilliseconds(50); //20x par seconde
 	}
@@ -77,4 +82,3 @@ void imu_init(void){
 }
 
 /**************************END PUBLIC FUNCTIONS***********************************/
-
