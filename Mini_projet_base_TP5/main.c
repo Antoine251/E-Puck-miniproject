@@ -19,13 +19,6 @@
 //uncomment pour utiliser la fonctionalite de detection de bosse
 //#include <imu_obstacle.h>
 
-
-//uncomment to send the FFTs results from the real microphones
-#define SEND_FROM_MIC
-
-//uncomment to use double buffering to send the FFT to the computer
-#define DOUBLE_BUFFERING
-
 messagebus_t bus; 			//defini car utilisation de bus pour proximity.c //et imu
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);

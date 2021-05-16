@@ -49,22 +49,22 @@ static THD_FUNCTION(motor_thd, arg){
 
 		switch(etat_obstacle){
 		case PAS_OBSTACLE : 	//avance suivant les instruction de l'utilisateur
-//				left_motor_set_speed(rotation_speed_left);
-//				right_motor_set_speed(rotation_speed_right);
+			left_motor_set_speed(rotation_speed_left);
+			right_motor_set_speed(rotation_speed_right);
 			break;
 
 		case OBSTACLE_AVANT : 	//autorise que la rotation sur place
-//			left_motor_set_speed(rotation_speed_left - vit_moy);
-//			right_motor_set_speed(rotation_speed_right - vit_moy);
+			left_motor_set_speed(rotation_speed_left - vit_moy);
+			right_motor_set_speed(rotation_speed_right - vit_moy);
 			break;
 
 		case OBSTACLE_ARRIERE : //bloque la direction en arriere
 			if(vit_moy < 0){
-//				left_motor_set_speed(rotation_speed_left - vit_moy);
-//				right_motor_set_speed(rotation_speed_right - vit_moy);
+				left_motor_set_speed(rotation_speed_left - vit_moy);
+				right_motor_set_speed(rotation_speed_right - vit_moy);
 			}else{
-//				left_motor_set_speed(rotation_speed_left);
-//				right_motor_set_speed(rotation_speed_right);
+				left_motor_set_speed(rotation_speed_left);
+				right_motor_set_speed(rotation_speed_right);
 			}
 			break;
 		}

@@ -8,16 +8,16 @@
 #include <capteur_proxi.h>
 
 
-#define PROXI_THRESHOLD 100 //distance à laquelle un obstacle est "proche"
+#define PROXI_THRESHOLD 100 //distance Ã  laquelle un obstacle est "proche"
 
-#define PROXI_FFR 	 0 	//front front right  		proximity sensor (+18° relative to front)
-#define PROXI_FRR 	 1 	//front right right 		proximity sensor (+49° relative to front)
-#define PROXI_R 	 2	//right        				proximity sensor (+90° relative to front)
-#define PROXI_BR 	 3 	//back right 				proximity sensor (+150° relative to front)
-#define PROXI_BL 	 4 	//back left 				proximity sensor (-150° relative to front)
-#define PROXI_L 	 5 	//left  					proximity sensor (-90° relative to front)
-#define PROXI_FLL 	 6 	//front left left 			proximity sensor (-49° relative to front)
-#define PROXI_FFL 	 7 	//front front left 			proximity sensor (-18° relative to front)
+#define PROXI_FFR 	 0 	//front front right  		proximity sensor (+18 deg relative to front)
+#define PROXI_FRR 	 1 	//front right right 		proximity sensor (+49 deg relative to front)
+#define PROXI_R 	 2	//right        				proximity sensor (+90 deg relative to front)
+#define PROXI_BR 	 3 	//back right 				proximity sensor (+150 deg relative to front)
+#define PROXI_BL 	 4 	//back left 				proximity sensor (-150 deg relative to front)
+#define PROXI_L 	 5 	//left  					proximity sensor (-90 deg relative to front)
+#define PROXI_FLL 	 6 	//front left left 			proximity sensor (-49 deg relative to front)
+#define PROXI_FFL 	 7 	//front front left 			proximity sensor (-18 deg relative to front)
 
 
 /***************************INTERNAL FUNCTIONS************************************/

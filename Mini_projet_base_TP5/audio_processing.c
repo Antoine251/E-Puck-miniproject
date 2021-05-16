@@ -35,6 +35,14 @@
 #define FREQ_6718				430
 #define FREQ_7031				450
 
+#define INTENSITY_MIN 			50
+
+// Vitesse du robot pour les différents niveaux d'intensité
+#define SPEED_MARCHE_ARRIERE	-300
+#define VITESSE_NUL				0
+#define SPEED_1					300
+#define SPEED_2					600
+
 //2 times FFT_SIZE because these arrays contain complex numbers (real + imaginary)
 static float mic_cmplx_input[2 * FFT_SIZE];
 
@@ -110,6 +118,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 				change_freq = 0;
 			}
 
+			//Allume la body_led verte si la fréquence détectée est bien dans la plage de fréquence autorisée
 			if (pic_detect > FREQ_MIN_SPEED && pic_detect < FREQ_MAX_SPEED) {
 				set_body_led(1);
 			} else {
@@ -122,9 +131,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 					max_intensity = mic_cmplx_input[n];
 				}
 			}
-
-			uint16_t pic_detect_ = pic_detect*15.625;
-			chprintf((BaseSequentialStream *)&SDU1, "  			                  		mean valu = %d         ; freq = %d \n", max_intensity, pic_detect_);
 
 			compteur = 0;  //On rempli une nouvelle fois le buffer d'entré
 			compute_motor_speed(pic_detect, max_intensity);
@@ -164,8 +170,6 @@ void compute_motor_speed(uint16_t pic_detect, int32_t mesured_intensity) {
 	compute_rotation_speed(pic_detect);
 
 	compute_speed_intensity(pic_detect, mesured_intensity);
-
-	//chprintf((BaseSequentialStream *)&SDU1, " pic detect = %d;moteur gauche = %d; moteur droite = %d \n", pic_detect, rotation_speed_left, rotation_speed_right);
 
 	//Poste les vitesses calculées dans la mailboxe
 	msg_t motor_speed_left_correction = speed_intensity + rotation_speed_left;
@@ -287,8 +291,6 @@ void compute_speed_intensity(uint16_t freq, int32_t mesured_intensity) {
 			speed_intensity_last_value = speed_intensity_2_last_value;
 		}
 	}
-
-	chprintf((BaseSequentialStream *)&SDU1, "speed_intensity = %d ;         %d   \n", speed_intensity, change_freq);
 }
 
 /*

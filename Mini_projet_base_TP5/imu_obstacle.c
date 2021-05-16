@@ -32,7 +32,7 @@ static THD_FUNCTION(obs_thd, arg){
 	uint8_t tilt_counter = 0;
 	uint8_t flat_counter = 0;
 
-	uint8_t tilt_state = NO_BUMP_DETECTED;
+	//uint8_t tilt_state = NO_BUMP_DETECTED;
 
 	while(1){
 
@@ -45,14 +45,14 @@ static THD_FUNCTION(obs_thd, arg){
 			flat_counter = 0;
 			if(tilt_counter == MAX_TILT_COUNTER){
 				tilt_counter = MAX_TILT_COUNTER - 1;
-				tilt_state = BUMP_DETECTED;
+				//tilt_state = BUMP_DETECTED;
 			}
 		} else if (z_acc <= ACC_Z_FLAT_THRESHOLD) {
 			flat_counter++;
 			tilt_counter = 0;
 			if(flat_counter == MAX_TILT_COUNTER){
 				tilt_counter = MAX_TILT_COUNTER - 1;
-				tilt_state = NO_BUMP_DETECTED;
+				//tilt_state = NO_BUMP_DETECTED;
 			}
 		}
 
